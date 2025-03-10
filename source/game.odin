@@ -1,71 +1,194 @@
 package game
 
-import rl "vendor:raylib"
-import "core:log"
-import "core:fmt"
 import "core:c"
 
-run: bool
-texture: rl.Texture
-texture2: rl.Texture
-texture2_rot: f32
+import rl "vendor:raylib"
+
+import cl "core_loop"
+import g "pathways"
+
+import "core:time"
+
+game_scene: g.Game
+loop: cl.Loop_Data
+
+window_width, window_height: i32
+title: cstring
+max_ups: f64 : 60
+max_fps: f64 : 60
+max_ups_buffer: u32 = 2
+
+MAX_UPS: f64 = max_ups
+MAX_FPS: f64 = max_fps
+MAX_UPS_DT: f64 = 1.0 / MAX_UPS
+MAX_FPS_DT: f64 = 1.0 / MAX_FPS
+
+
+time_acc_loop: f64
+time_start_loop: f64
+time_end_loop: f64
+time_delta: f64
+
+time_start: f64
+time_acc_update: f64
+time_acc_render: f64
+
+acc_update: f64
+ups_buffer_counter: u32
+acc_draw: f64
+
+is_update: bool
+is_draw: bool
+
+stat_ups: u32
+stat_fps: u32
+stat_lps: u32
+stat_sps: u32
+
+is_running: bool
+
+scene: ^cl.Scene
+sm: cl.Scene_Manager
 
 init :: proc() {
-	run = true
-	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
-	rl.InitWindow(1280, 720, "Odin + Raylib on the web")
 
-	// Anything in `assets` folder is available to load.
-	texture = rl.LoadTexture("assets/round_cat.png")
+	scene = g.create()
+	if scene == nil {return}
+	sm = cl.scene_manager_create(scene)
 
-	// A different way of loading a texture: using `read_entire_file` that works
-	// both on desktop and web. Note: You can import `core:os` and use
-	// `os.read_entire_file`. But that won't work on web. Emscripten has a way
-	// to bundle files into the build, and we access those using this
-	// special `read_entire_file`.
-	if long_cat_data, long_cat_ok := read_entire_file("assets/long_cat.png", context.temp_allocator); long_cat_ok {
-		long_cat_img := rl.LoadImageFromMemory(".png", raw_data(long_cat_data), c.int(len(long_cat_data)))
-		texture2 = rl.LoadTextureFromImage(long_cat_img)
-		rl.UnloadImage(long_cat_img)
+	window_width = 800
+	window_height = 600
+	title = "odin-pathways"
+	//rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
+	rl.SetConfigFlags({.VSYNC_HINT})
+	rl.InitWindow(window_width, window_height, title)
+
+	loop.update_step = MAX_UPS_DT
+	loop.max_ups = cast(u32)MAX_UPS
+	loop.max_ups_buffer = max_ups_buffer
+
+
+	loop.render_step = MAX_FPS_DT
+	loop.max_fps = cast(u32)MAX_FPS
+
+
+	if !sm.scene->init(&loop) {
+		return
 	}
+
+	when ODIN_OS != .JS {
+		is_running = !rl.WindowShouldClose()
+	} else {
+		is_running = true
+	}
+
 }
 
 update :: proc() {
-	rl.BeginDrawing()
-	rl.ClearBackground({0, 120, 153, 255})
-	{
-		texture2_rot += rl.GetFrameTime()*50
-		source_rect := rl.Rectangle {
-			0, 0,
-			f32(texture2.width), f32(texture2.height),
+
+
+	time_end_loop = rl.GetTime()
+
+	time_delta = time_end_loop - time_start_loop
+	time_start_loop = time_end_loop
+
+
+	time_acc_loop += time_delta
+	acc_update += time_delta
+	acc_draw += time_delta
+
+	when ODIN_OS != .JS {
+		if time_delta < (loop.update_step / 2.0) {
+			time.sleep(time.Millisecond * cast(time.Duration)(loop.update_step / 1.0 * 1000))
+			stat_sps += 1
 		}
-		dest_rect := rl.Rectangle {
-			300, 220,
-			f32(texture2.width)*5, f32(texture2.height)*5,
+	}
+
+
+	for acc_update >= loop.update_step && ups_buffer_counter < loop.max_ups_buffer {
+
+		if !is_draw {
+			rl.PollInputEvents()
 		}
-		rl.DrawTexturePro(texture2, source_rect, dest_rect, {dest_rect.width/2, dest_rect.height/2}, texture2_rot, rl.WHITE)
+		is_draw = false
+
+
+		when ODIN_OS != .JS {
+			is_running = !rl.WindowShouldClose()
+		}
+		
+		if is_running == false {
+			sm.scene->close()
+			return
+		}
+
+		sm.scene->input()
+
+		time_start = rl.GetTime()
+		is_running = sm.scene->update()
+		time_acc_update += rl.GetTime() - time_start
+
+		is_update = true
+		acc_update -= loop.update_step
+		ups_buffer_counter += 1
+		stat_ups += 1
 	}
-	rl.DrawTextureEx(texture, rl.GetMousePosition(), 0, 5, rl.WHITE)
-	rl.DrawRectangleRec({0, 0, 220, 130}, rl.BLACK)
-	rl.GuiLabel({10, 10, 200, 20}, "raygui works!")
 
-	if rl.GuiButton({10, 30, 200, 20}, "Print to log (see console)") {
-		log.info("log.info works!")
-		fmt.println("fmt.println too.")
+	if ups_buffer_counter < loop.max_ups_buffer {
+		ups_buffer_counter = 0
 	}
 
-	if rl.GuiButton({10, 60, 200, 20}, "Source code (opens GitHub)") {
-		rl.OpenURL("https://github.com/karl-zylinski/odin-raylib-web")
+	if is_update && acc_draw >= loop.render_step {
+
+		if (ups_buffer_counter >= loop.max_ups_buffer) {
+			ups_buffer_counter = 0
+			acc_update = 0
+		}
+
+		time_start = rl.GetTime()
+		sm.scene->output()
+		time_acc_render += rl.GetTime() - time_start
+
+		stat_fps += 1
+		acc_draw -= loop.render_step
+
+		if acc_draw * cast(f64)loop.max_ups_buffer >
+		   loop.render_step * cast(f64)loop.max_ups_buffer {
+			acc_draw = 0
+		}
+		is_update = false
+		is_draw = true
 	}
 
-	if rl.GuiButton({10, 90, 200, 20}, "Quit") {
-		run = false
+
+	if time_acc_loop >= 1.0 {
+		loop.seconds_since_app_start += 1
+
+		if stat_ups > 0 do loop.stat_update_average_time = time_acc_update / cast(f64)stat_ups * 1000
+		if stat_fps > 0 do loop.stat_render_average_time = time_acc_render / cast(f64)stat_fps * 1000
+		if stat_lps > 0 do loop.stat_loop_average_time = time_acc_loop / cast(f64)stat_lps * 1000
+
+		sm.scene->each_second()
+
+		time_acc_loop -= 1.0
+		time_acc_update = 0
+		time_acc_render = 0
+
+		loop.stat_ips = 0
+		loop.stat_ups = stat_ups
+		loop.stat_fps = stat_fps
+		loop.stat_lps = stat_lps
+		loop.stat_sps = stat_sps
+
+		stat_ups = 0
+		stat_fps = 0
+		stat_lps = 0
+		stat_sps = 0
+
+		free_all(context.temp_allocator)
 	}
 
-	rl.EndDrawing()
-
-	// Anything allocated using temp allocator is invalid after this.
-	free_all(context.temp_allocator)
+	stat_lps += 1
 }
 
 // In a web build, this is called when browser changes size. Remove the
@@ -75,16 +198,12 @@ parent_window_size_changed :: proc(w, h: int) {
 }
 
 shutdown :: proc() {
+	free_all(context.temp_allocator)
+	sm.scene->close()
+	cl.destroy_scene_manager(&sm)
 	rl.CloseWindow()
 }
 
 should_run :: proc() -> bool {
-	when ODIN_OS != .JS {
-		// Never run this proc in browser. It contains a 16 ms sleep on web!
-		if rl.WindowShouldClose() {
-			run = false
-		}
-	}
-
-	return run
+	return is_running
 }
