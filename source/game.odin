@@ -58,7 +58,7 @@ init :: proc() {
 
 	window_width = 800
 	window_height = 600
-	title = "odin-pathways"
+	title = "find your path"
 	//rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
 	rl.SetConfigFlags({.VSYNC_HINT})
 	rl.InitWindow(window_width, window_height, title)
