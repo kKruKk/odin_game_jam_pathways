@@ -1,12 +1,9 @@
-package pathways
+package template_scene
 
 import "core:fmt"
 import rl "vendor:raylib"
 
-import cl "../core_loop"
-
-import "../scenes/entry_scene"
-import sn "../scenes"
+import cl "../../core_loop"
 
 create :: proc() -> ^Game {
 
@@ -35,12 +32,6 @@ Game :: struct {
 scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game := cast(^Game)scene
 	game.loop = loop
-
-	scene := entry_scene.create()
-	cl.scene_manager_insert(game.loop.scene_manager,scene,cast(u16)sn.Scene_Name.ENTRY_SCENE)
-	cl.scene_manager_next(game.loop.scene_manager,cast(u16)sn.Scene_Name.ENTRY_SCENE)
-	cl.scene_manager_change(game.loop.scene_manager)
-    game.loop.scene_manager.scene->init(game.loop)
 
 	return true
 }

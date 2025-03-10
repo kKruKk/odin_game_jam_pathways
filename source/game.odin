@@ -71,7 +71,7 @@ init :: proc() {
 	loop.render_step = MAX_FPS_DT
 	loop.max_fps = cast(u32)MAX_FPS
 
-
+	loop.scene_manager = &sm
 	if !sm.scene->init(&loop) {
 		return
 	}

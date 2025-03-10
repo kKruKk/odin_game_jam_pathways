@@ -68,7 +68,7 @@ scene_manager_create :: proc(boot: ^Scene) -> Scene_Manager {
 }
 
 scene_manager_insert :: proc(sm: ^Scene_Manager, s: ^Scene, id: u16) {
-	_, ok := sm.scenes[id];if !ok {
+	if _ , ok := sm.scenes[id]; !ok {
 		map_insert(&sm.scenes, id, s)
 	}
 }
@@ -84,6 +84,10 @@ scene_manager_next :: proc(sm: ^Scene_Manager, id: u16) {
 scene_manager_change :: proc(sm: ^Scene_Manager) {
 	sm.current = sm.next
 	sm.scene = sm.scenes[sm.current]
+}
+
+scene_manager_back_to_boot :: proc(sm : ^Scene_Manager){
+	sm.scene = sm.boot
 }
 
 Loop_Data :: struct {
