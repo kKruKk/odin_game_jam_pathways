@@ -5,7 +5,7 @@ import "core:c"
 import rl "vendor:raylib"
 
 import cl "core_loop"
-import g "pathways"
+import g "scenes/pathways"
 
 import "core:time"
 
@@ -14,9 +14,9 @@ loop: cl.Loop_Data
 
 window_width, window_height: i32
 title: cstring
-max_ups: f64 : 60
-max_fps: f64 : 60
-max_ups_buffer: u32 = 2
+max_ups: f64 : 120
+max_fps: f64 : 120
+max_ups_buffer: u32 = 1
 
 MAX_UPS: f64 = max_ups
 MAX_FPS: f64 = max_fps
@@ -50,7 +50,10 @@ is_running: bool
 scene: ^cl.Scene
 sm: cl.Scene_Manager
 
+
 init :: proc() {
+
+	
 
 	scene = g.create()
 	if scene == nil {return}
@@ -60,7 +63,9 @@ init :: proc() {
 	window_height = 600
 	title = "find your path"
 	//rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
-	rl.SetConfigFlags({.VSYNC_HINT})
+	when ODIN_OS == .JS {
+		//rl.SetConfigFlags({.VSYNC_HINT})
+	}
 	rl.InitWindow(window_width, window_height, title)
 
 	loop.update_step = MAX_UPS_DT
@@ -116,7 +121,7 @@ update :: proc() {
 		when ODIN_OS != .JS {
 			is_running = !rl.WindowShouldClose()
 		}
-		
+
 		if is_running == false {
 			sm.scene->close()
 			return
@@ -199,7 +204,6 @@ parent_window_size_changed :: proc(w, h: int) {
 
 shutdown :: proc() {
 	free_all(context.temp_allocator)
-	sm.scene->close()
 	cl.destroy_scene_manager(&sm)
 	rl.CloseWindow()
 }

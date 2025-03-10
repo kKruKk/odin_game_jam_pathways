@@ -49,7 +49,6 @@ scene_each_second :: proc(scene: ^Scene) {}
 
 Scene_Manager :: struct {
 	scenes:  map[u16]^Scene,
-	boot:    ^Scene,
 	scene:   ^Scene,
 	current: u16,
 	next:    u16,
@@ -60,11 +59,13 @@ destroy_scene_manager :: proc(sm: ^Scene_Manager) {
 		free(sm.scenes[s])
 	}
 	delete(sm.scenes)
-	free(sm.boot)
+	
 }
 
-scene_manager_create :: proc(boot: ^Scene) -> Scene_Manager {
-	return Scene_Manager{boot = boot, scene = boot}
+scene_manager_create :: proc(boot_scene: ^Scene) -> Scene_Manager {
+	sm := Scene_Manager{scene = boot_scene}
+	map_insert(&sm.scenes,0,boot_scene) 
+	return sm 
 }
 
 scene_manager_insert :: proc(sm: ^Scene_Manager, s: ^Scene, id: u16) {
@@ -84,10 +85,7 @@ scene_manager_next :: proc(sm: ^Scene_Manager, id: u16) {
 scene_manager_change :: proc(sm: ^Scene_Manager) {
 	sm.current = sm.next
 	sm.scene = sm.scenes[sm.current]
-}
-
-scene_manager_back_to_boot :: proc(sm : ^Scene_Manager){
-	sm.scene = sm.boot
+	sm.scene->on_enter()
 }
 
 Loop_Data :: struct {
