@@ -239,10 +239,10 @@ draw_player_target :: proc(g: ^Game) {
 		if cast(i32)g.player.target_pos_x[index] + t.texture.width <= 0 {
 
 			rl.BeginTextureMode(t)
-			rl.ClearBackground(rl.Color{16, 16, 16, 255})
+			rl.ClearBackground(rl.Color{255, 255, 255, 0})
 			rl.EndTextureMode()
 
-			g.player.target_pos_x[index] = cast(f32)t.texture.width - 32
+			g.player.target_pos_x[index] = cast(f32)t.texture.width - 4
 		}
 
 	}
