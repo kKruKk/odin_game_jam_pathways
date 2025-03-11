@@ -32,6 +32,7 @@ Game :: struct {
 	player:       Player,
 	worms:        [dynamic]Entity,
 	worm_screen:  rl.RenderTexture2D,
+	obstacles:    [dynamic]rl.Rectangle,
 }
 
 
@@ -83,7 +84,6 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	append(&game.player.target_pos_x, cast(f32)rl.GetScreenWidth())
 	append(&game.player.target_pos_x, cast(f32)rl.GetScreenWidth())
 
-	
 
 	// init paths and paths_screens 
 	{
@@ -111,6 +111,21 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 
 	}
 
+	{
+		// obstacles
+		e: rl.Rectangle
+		for it in 0 ..< 100 {
+			e.width = cast(f32)rl.GetRandomValue(32, 256)
+			e.height = cast(f32)rl.GetRandomValue(32, 256)
+			e.x = cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 2)
+			e.y = cast(f32)rl.GetRandomValue(0 - cast(i32)e.height, rl.GetScreenHeight())
+
+			append(&game.obstacles, e)
+		}
+
+
+	}
+
 
 	return true
 }
@@ -125,7 +140,7 @@ scene_close :: proc(scene: ^cl.Scene) {
 	}
 	delete(game.player.target)
 	delete(game.worms)
-	
+
 	rl.UnloadRenderTexture(game.worm_screen)
 
 }
@@ -188,6 +203,7 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	speed = game.player.pos.x * dt
 
 	worm_update(game, dt)
+	obstacle_update(game,dt)
 
 	return true
 }
@@ -237,9 +253,12 @@ scene_output :: proc(scene: ^cl.Scene) {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.Color{16, 16, 16, 255})
 
+	for o in game.obstacles {
+		rl.DrawRectangleRec(o,rl.Color{64,92,128,255})
+	}
+
 
 	draw_player_target(game)
-
 
 	for t, index in game.player.target {
 		rl.DrawTextureRec(

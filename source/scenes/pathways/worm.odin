@@ -5,7 +5,7 @@ import rl "vendor:raylib"
 
 worm_update :: proc(g: ^Game, dt: f32) {
 
-	speed := g.player.pos.x * dt / 2
+	speed := 100 * dt 
 	dir: rl.Vector2
 
 	for &w, index in g.worms {
@@ -13,7 +13,7 @@ worm_update :: proc(g: ^Game, dt: f32) {
 		if w.pos.x < 0 {
 
 			w.pos.x = cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 2)
-			w.pos.y = cast(f32)rl.GetRandomValue(0, rl.GetScreenHeight())
+			w.pos.y = cast(f32)rl.GetRandomValue(-8, rl.GetScreenHeight() - 8)
 
 		} else if w.pos.x < g.player.pos.x + 128 &&
 		   w.pos.x > g.player.pos.x &&
@@ -46,11 +46,20 @@ path_render :: proc(g: ^Game) {
 		0,
 		g.worm_screen.texture.width,
 		g.worm_screen.texture.height,
-		rl.Color{128, 64, 128, 4},
+		rl.Color{128, 64, 128, 2},
 	)
 
+	sw: bool
+
 	for w in g.worms {
-		rl.DrawRectangle(cast(i32)w.pos.x, cast(i32)w.pos.y, 2, 2, w.color)
+		if sw {
+			sw = false
+			rl.DrawRectangle(cast(i32)w.pos.x, cast(i32)w.pos.y, 2, 2, w.color)
+		} else {
+			sw = true
+			rl.DrawPoly(w.pos, 8, 16, cast(f32)(rl.GetRandomValue(0, 360)), rl.Color{186,196,220,255})
+			
+		}
 	}
 
 	rl.DrawCircleGradient(
@@ -58,22 +67,22 @@ path_render :: proc(g: ^Game) {
 		cast(i32)g.player.pos.y,
 		64,
 		g.player.color,
-		rl.Color{0,0,0,0},
+		rl.Color{0,0, 0, 0},
 	)
-	rl.DrawCircleGradient(
-		cast(i32)g.player.pos.x,
-		cast(i32)g.player.pos.y,
-		64,
-		rl.Color{16, 186, 255, 32},
-		rl.Color{16, 16, 16, 0},
-	)
-	rl.DrawCircleGradient(
-		cast(i32)g.player.pos.x,
-		cast(i32)g.player.pos.y,
-		128,
-		rl.Color{16, 186, 220, 16},
-		rl.Color{16, 16, 16, 0},
-	)
+	// rl.DrawCircleGradient(
+	// 	cast(i32)g.player.pos.x,
+	// 	cast(i32)g.player.pos.y,
+	// 	64,
+	// 	rl.Color{16, 186, 255, 32},
+	// 	rl.Color{16, 16, 16, 0},
+	// )
+	// rl.DrawCircleGradient(
+	// 	cast(i32)g.player.pos.x,
+	// 	cast(i32)g.player.pos.y,
+	// 	128,
+	// 	rl.Color{16, 186, 220, 16},
+	// 	rl.Color{16, 16, 16, 0},
+	// )
 
 	rl.EndTextureMode()
 
