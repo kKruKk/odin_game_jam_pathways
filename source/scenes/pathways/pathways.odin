@@ -25,16 +25,14 @@ create :: proc() -> ^Game {
 }
 
 Game :: struct {
-	using scene:   cl.Scene,
-	loop:          ^cl.Loop_Data,
-	should_close:  bool,
-	is_fps_draw:   bool,
-	player:        Player,
-	entities:      [dynamic]Entity,
-	paths:         [dynamic]Paths,
-	paths_screens: map[Path_Screen_Key]rl.RenderTexture2D,
+	using scene:  cl.Scene,
+	loop:         ^cl.Loop_Data,
+	should_close: bool,
+	is_fps_draw:  bool,
+	player:       Player,
+	worms:        [dynamic]Entity,
+	worm_screen:  rl.RenderTexture2D,
 }
-
 
 
 Player :: struct {
@@ -51,13 +49,11 @@ Entity :: struct {
 }
 
 
-
-
 @(private)
 scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game := cast(^Game)scene
 	game.loop = loop
-	game.is_fps_draw = true 
+	game.is_fps_draw = true
 	width := rl.GetScreenWidth()
 	height := rl.GetScreenHeight()
 
@@ -87,48 +83,31 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	append(&game.player.target_pos_x, cast(f32)rl.GetScreenWidth())
 	append(&game.player.target_pos_x, cast(f32)rl.GetScreenWidth())
 
-	{
-		// for it in 0 ..< 32 {
-		// 	append(
-		// 		&game.entities,
-		// 		Entity {
-		// 			pos = {
-		// 				cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 2),
-		// 				cast(f32)rl.GetRandomValue(0, rl.GetScreenHeight()),
-		// 			},
-		// 			color = rl.Color {
-		// 				cast(u8)rl.GetRandomValue(128, 255),
-		// 				cast(u8)rl.GetRandomValue(128, 255),
-		// 				cast(u8)rl.GetRandomValue(128, 255),
-		// 				255,
-		// 			},
-		// 		},
-		// 	)
-		// }
-	}
+	
 
 	// init paths and paths_screens 
 	{
 
-		for it in 0 ..< 1000 {
-			append(
-				&game.paths,
-				Paths {
-					pos = {
-						cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 2),
-						cast(f32)rl.GetRandomValue(0, rl.GetScreenHeight()),
-					},
-					color = rl.Color {
-						cast(u8)rl.GetRandomValue(128, 255),
-						cast(u8)rl.GetRandomValue(128, 255),
-						cast(u8)rl.GetRandomValue(128, 255),
-						255,
-					},
+		entity: Entity
+		for it in 0 ..< 2500 {
+			entity = Entity {
+				pos   = {
+					cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 2),
+					cast(f32)rl.GetRandomValue(0, rl.GetScreenHeight()),
 				},
-			)
+				color = rl.Color {
+					cast(u8)rl.GetRandomValue(128, 255),
+					cast(u8)rl.GetRandomValue(128, 255),
+					cast(u8)rl.GetRandomValue(128, 255),
+					255,
+				},
+			}
+
+
+			append(&game.worms, entity)
 		}
 
-		map_insert(&game.paths_screens,Path_Screen_Key{0,0},rl.LoadRenderTexture(width,height)) 
+		game.worm_screen = rl.LoadRenderTexture(width, height)
 
 	}
 
@@ -141,17 +120,14 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 scene_close :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
-	delete(game.entities)
 	for t in game.player.target {
 		rl.UnloadRenderTexture(t)
 	}
 	delete(game.player.target)
+	delete(game.worms)
+	
+	rl.UnloadRenderTexture(game.worm_screen)
 
-	delete(game.paths)
-	for key, val in game.paths_screens {
-		rl.UnloadRenderTexture(val)
-	}
-	delete(game.paths_screens)
 }
 @(private)
 scene_on_enter :: proc(scene: ^cl.Scene) {}
@@ -181,16 +157,16 @@ scene_input :: proc(scene: ^cl.Scene) {
 		game.player.dir.x = 1
 	}
 
-	if rl.IsMouseButtonDown(rl.MouseButton.LEFT){
+	if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
 		mouse := rl.GetMousePosition()
-		diff:= mouse - game.player.pos
+		diff := mouse - game.player.pos
 		if diff.x > 16 {
-			game.player.dir.x = 1 
+			game.player.dir.x = 1
 		} else if diff.x < -16 {
 			game.player.dir.x = -1
 		}
 		if diff.y > 16 {
-			game.player.dir.y = 1 
+			game.player.dir.y = 1
 		} else if diff.y < -16 {
 			game.player.dir.y = -1
 		}
@@ -201,7 +177,7 @@ scene_input :: proc(scene: ^cl.Scene) {
 
 
 @(private)
-scene_update :: proc(scene: ^cl.Scene,dt : f32) -> bool {
+scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	game := cast(^Game)scene
 
 	speed: f32 = 200 * dt
@@ -211,19 +187,7 @@ scene_update :: proc(scene: ^cl.Scene,dt : f32) -> bool {
 
 	speed = game.player.pos.x * dt
 
-	// update entities 
-	for &e in game.entities {
-		e.pos.x -= speed
-
-		if e.pos.x < 0 {
-			e.pos = {
-				cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 3),
-				cast(f32)rl.GetRandomValue(0, rl.GetScreenHeight()),
-			}
-		}
-	}
-
-	path_update(game,dt)
+	worm_update(game, dt)
 
 	return true
 }
@@ -271,12 +235,12 @@ scene_output :: proc(scene: ^cl.Scene) {
 
 
 	rl.BeginDrawing()
-	rl.ClearBackground(rl.Color{255, 255, 255, 255})
+	rl.ClearBackground(rl.Color{16, 16, 16, 255})
 
 
 	draw_player_target(game)
-	
-	
+
+
 	for t, index in game.player.target {
 		rl.DrawTextureRec(
 			t.texture,
@@ -288,7 +252,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 	path_render(game)
 
 	rl.DrawPoly(game.player.pos, 3, 16, cast(f32)(rl.GetRandomValue(0, 360)), game.player.color)
-	
+
 	if (game.is_fps_draw) {
 		rl.DrawText(rl.TextFormat("FPS: %i", game.loop.stat_fps), 10, 10, 20, rl.GREEN)
 	}
