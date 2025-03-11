@@ -15,8 +15,8 @@ loop: cl.Loop_Data
 window_width, window_height: i32
 title: cstring
 max_ups: f64 : 120
-max_fps: f64 : 120
-max_ups_buffer: u32 = 1
+max_fps: f64 : 60
+max_ups_buffer: u32 = 8
 
 MAX_UPS: f64 = max_ups
 MAX_FPS: f64 = max_fps
@@ -130,7 +130,7 @@ update :: proc() {
 		sm.scene->input()
 
 		time_start = rl.GetTime()
-		is_running = sm.scene->update()
+		is_running = sm.scene->update(cast(f32)loop.update_step)
 		time_acc_update += rl.GetTime() - time_start
 
 		is_update = true

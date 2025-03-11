@@ -31,14 +31,18 @@ Game :: struct {
 	is_fps_draw:   bool,
 	player:        Player,
 	entities:      [dynamic]Entity,
+	paths:         [dynamic]Paths,
+	paths_screens: map[Path_Screen_Key]rl.RenderTexture2D,
 }
 
+
+
 Player :: struct {
-	dir:    rl.Vector2,
-	pos:    rl.Vector2,
-	color:  rl.Color,
-	target: [dynamic]rl.RenderTexture2D,
-	target_pos_x : [dynamic]f32
+	dir:          rl.Vector2,
+	pos:          rl.Vector2,
+	color:        rl.Color,
+	target:       [dynamic]rl.RenderTexture2D,
+	target_pos_x: [dynamic]f32,
 }
 
 Entity :: struct {
@@ -46,10 +50,16 @@ Entity :: struct {
 	color: rl.Color,
 }
 
+
+
+
 @(private)
 scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game := cast(^Game)scene
 	game.loop = loop
+
+	width := rl.GetScreenWidth()
+	height := rl.GetScreenHeight()
 
 	if false {
 		scene := entry_scene.create()
@@ -62,20 +72,20 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	{
 		game.player.pos = {100, 300}
 		game.player.color = {
-			cast(u8)rl.GetRandomValue(128, 255),
-			cast(u8)rl.GetRandomValue(128, 255),
-			cast(u8)rl.GetRandomValue(128, 255),
+			cast(u8)rl.GetRandomValue(186, 255),
+			cast(u8)rl.GetRandomValue(186, 255),
+			cast(u8)rl.GetRandomValue(186, 255),
 			255,
 		}
 	}
 
 
-	append(&game.player.target,rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight()))
-	append(&game.player.target,rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight()))
-	append(&game.player.target,rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight()))
-	append(&game.player.target_pos_x,0)
-	append(&game.player.target_pos_x,cast(f32)rl.GetScreenWidth() / 2)
-	append(&game.player.target_pos_x,cast(f32)rl.GetScreenWidth())
+	append(&game.player.target, rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight()))
+	append(&game.player.target, rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight()))
+	append(&game.player.target, rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight()))
+	append(&game.player.target_pos_x, 0)
+	append(&game.player.target_pos_x, cast(f32)rl.GetScreenWidth() / 2)
+	append(&game.player.target_pos_x, cast(f32)rl.GetScreenWidth())
 
 	{
 		for it in 0 ..< 32 {
@@ -97,6 +107,31 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 		}
 	}
 
+	// init paths and paths_screens 
+	{
+
+		for it in 0 ..< 1000 {
+			append(
+				&game.paths,
+				Paths {
+					pos = {
+						cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 2),
+						cast(f32)rl.GetRandomValue(0, rl.GetScreenHeight()),
+					},
+					color = rl.Color {
+						cast(u8)rl.GetRandomValue(128, 255),
+						cast(u8)rl.GetRandomValue(128, 255),
+						cast(u8)rl.GetRandomValue(128, 255),
+						255,
+					},
+				},
+			)
+		}
+
+		map_insert(&game.paths_screens,Path_Screen_Key{0,0},rl.LoadRenderTexture(width,height)) 
+
+	}
+
 
 	return true
 }
@@ -111,6 +146,12 @@ scene_close :: proc(scene: ^cl.Scene) {
 		rl.UnloadRenderTexture(t)
 	}
 	delete(game.player.target)
+
+	delete(game.paths)
+	for key, val in game.paths_screens {
+		rl.UnloadRenderTexture(val)
+	}
+	delete(game.paths_screens)
 }
 @(private)
 scene_on_enter :: proc(scene: ^cl.Scene) {}
@@ -144,15 +185,15 @@ scene_input :: proc(scene: ^cl.Scene) {
 
 
 @(private)
-scene_update :: proc(scene: ^cl.Scene) -> bool {
+scene_update :: proc(scene: ^cl.Scene,dt : f32) -> bool {
 	game := cast(^Game)scene
 
-	speed: f32 = 200 / cast(f32)game.loop.max_ups
+	speed: f32 = 200 * dt
 	game.player.dir = rl.Vector2Normalize(game.player.dir)
 	game.player.pos = game.player.pos + (game.player.dir * speed)
 
 
-	speed = game.player.pos.x / cast(f32)game.loop.max_ups
+	speed = game.player.pos.x * dt
 
 	// update entities 
 	for &e in game.entities {
@@ -166,16 +207,16 @@ scene_update :: proc(scene: ^cl.Scene) -> bool {
 		}
 	}
 
+	path_update(game,dt)
 
 	return true
 }
 
 
+draw_player_target :: proc(g: ^Game) {
 
-draw_player_target :: proc(g : ^Game){
-
-	color : rl.Color = {16,16,16,4}
-	for t,index in g.player.target {
+	color: rl.Color = {16, 16, 16, 4}
+	for t, index in g.player.target {
 		// if index == 1 {
 		// 	color = {16,16,16,64}
 		// } else if index == 2 {
@@ -192,21 +233,20 @@ draw_player_target :: proc(g : ^Game){
 		rl.EndTextureMode()
 
 	}
-	
+
 	for &t, index in g.player.target {
-		g.player.target_pos_x[index] -= g.player.pos.x / cast(f32)g.loop.max_ups 
-		if cast(i32)g.player.target_pos_x[index] + t.texture.width  <= 0 {
-			
+		g.player.target_pos_x[index] -= g.player.pos.x / cast(f32)g.loop.max_ups
+		if cast(i32)g.player.target_pos_x[index] + t.texture.width <= 0 {
+
 			rl.BeginTextureMode(t)
-			rl.ClearBackground(rl.Color{16,16,16,255})
+			rl.ClearBackground(rl.Color{16, 16, 16, 255})
 			rl.EndTextureMode()
-			
-		   g.player.target_pos_x[index] = cast(f32)t.texture.width 	-32
+
+			g.player.target_pos_x[index] = cast(f32)t.texture.width - 32
 		}
 
 	}
 }
-
 
 
 @(private)
@@ -214,27 +254,34 @@ scene_output :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
 
-	
-
 	rl.BeginDrawing()
-	rl.ClearBackground(rl.Color{16, 16, 16, 255})
+	rl.ClearBackground(rl.Color{255, 255, 255, 255})
 
-	for e in game.entities {
-		rl.DrawRectangle(cast(i32)e.pos.x, cast(i32)e.pos.y, 16, 16, e.color)
-	}
+	// for e in game.entities {
+	// 	rl.DrawRectangle(cast(i32)e.pos.x, cast(i32)e.pos.y, 16, 16, e.color)
+	// }
 
 	draw_player_target(game)
-
+	
+	
 	for t, index in game.player.target {
-		rl.DrawTextureRec(t.texture, {0, 0, cast(f32)rl.GetScreenWidth(), cast(f32)-rl.GetScreenHeight()}, {game.player.target_pos_x[index], 0}, rl.WHITE)
+		rl.DrawTextureRec(
+			t.texture,
+			{0, 0, cast(f32)rl.GetScreenWidth(), cast(f32)-rl.GetScreenHeight()},
+			{game.player.target_pos_x[index], 0},
+			rl.WHITE,
+		)
 	}
+	path_render(game)
 
+	rl.DrawPoly(game.player.pos, 3, 16, cast(f32)(rl.GetRandomValue(0, 360)), game.player.color)
+	
 	if (game.is_fps_draw) {
 		rl.DrawText(rl.TextFormat("FPS: %i", game.loop.stat_fps), 10, 10, 20, rl.GREEN)
 	}
 	rl.EndDrawing()
 
-	
+
 }
 @(private)
 scene_each_second :: proc(scene: ^cl.Scene) {

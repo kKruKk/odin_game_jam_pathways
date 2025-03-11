@@ -8,7 +8,7 @@ Scene :: struct {
 	close:       proc(scene: ^Scene),
 	on_enter:    proc(scene: ^Scene),
 	input:       proc(scene: ^Scene),
-	update:      proc(scene: ^Scene) -> bool,
+	update:      proc(scene: ^Scene,dt : f32) -> bool,
 	output:      proc(scene: ^Scene),
 	each_second: proc(scene: ^Scene),
 }
@@ -40,7 +40,7 @@ scene_on_enter :: proc(scene: ^Scene) {}
 @(private)
 scene_input :: proc(scene: ^Scene) {}
 @(private)
-scene_update :: proc(scene: ^Scene) -> bool {return true}
+scene_update :: proc(scene: ^Scene,dt : f32) -> bool {return true}
 @(private)
 scene_output :: proc(scene: ^Scene) {}
 @(private)
@@ -205,9 +205,9 @@ run :: proc(
 			}
 
 			sm.scene->input()
-
+		
 			time_start = rl.GetTime()
-			sm.scene->update()
+			sm.scene->update(cast(f32)loop.max_ups)
 			time_acc_update += rl.GetTime() - time_start
 			is_update = true
 			acc_update -= loop.update_step

@@ -106,17 +106,17 @@ scene_input :: proc(scene: ^cl.Scene) {
 
 
 @(private)
-scene_update :: proc(scene: ^cl.Scene) -> bool {
+scene_update :: proc(scene: ^cl.Scene,dt : f32) -> bool {
 	game := cast(^Game)scene
 
 	if game.should_close {
-		game.text_y -= 30 / cast(f32)game.loop.max_ups
+		game.text_y -= 30 / dt
 	} else if game.text_y < cast(f32)rl.GetScreenHeight() / 3 {
-		game.text_y += 30 / cast(f32)game.loop.max_ups
+		game.text_y += 30 / dt
 	} else {
 		game.show_button_coutner += 1
 
-		if game.show_button_coutner > game.loop.max_ups {
+		if game.show_button_coutner > cast(u32)dt {
 
 			game.is_show_button = true
 			if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) &&
