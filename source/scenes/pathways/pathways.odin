@@ -57,7 +57,7 @@ Entity :: struct {
 scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game := cast(^Game)scene
 	game.loop = loop
-
+	game.is_fps_draw = true 
 	width := rl.GetScreenWidth()
 	height := rl.GetScreenHeight()
 
@@ -84,27 +84,27 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	append(&game.player.target, rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight()))
 	append(&game.player.target, rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight()))
 	append(&game.player.target_pos_x, 0)
-	append(&game.player.target_pos_x, cast(f32)rl.GetScreenWidth() / 2)
+	append(&game.player.target_pos_x, cast(f32)rl.GetScreenWidth())
 	append(&game.player.target_pos_x, cast(f32)rl.GetScreenWidth())
 
 	{
-		for it in 0 ..< 32 {
-			append(
-				&game.entities,
-				Entity {
-					pos = {
-						cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 2),
-						cast(f32)rl.GetRandomValue(0, rl.GetScreenHeight()),
-					},
-					color = rl.Color {
-						cast(u8)rl.GetRandomValue(128, 255),
-						cast(u8)rl.GetRandomValue(128, 255),
-						cast(u8)rl.GetRandomValue(128, 255),
-						255,
-					},
-				},
-			)
-		}
+		// for it in 0 ..< 32 {
+		// 	append(
+		// 		&game.entities,
+		// 		Entity {
+		// 			pos = {
+		// 				cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 2),
+		// 				cast(f32)rl.GetRandomValue(0, rl.GetScreenHeight()),
+		// 			},
+		// 			color = rl.Color {
+		// 				cast(u8)rl.GetRandomValue(128, 255),
+		// 				cast(u8)rl.GetRandomValue(128, 255),
+		// 				cast(u8)rl.GetRandomValue(128, 255),
+		// 				255,
+		// 			},
+		// 		},
+		// 	)
+		// }
 	}
 
 	// init paths and paths_screens 
@@ -179,6 +179,22 @@ scene_input :: proc(scene: ^cl.Scene) {
 	}
 	if rl.IsKeyDown(.D) {
 		game.player.dir.x = 1
+	}
+
+	if rl.IsMouseButtonDown(rl.MouseButton.LEFT){
+		mouse := rl.GetMousePosition()
+		diff:= mouse - game.player.pos
+		if diff.x > 16 {
+			game.player.dir.x = 1 
+		} else if diff.x < -16 {
+			game.player.dir.x = -1
+		}
+		if diff.y > 16 {
+			game.player.dir.y = 1 
+		} else if diff.y < -16 {
+			game.player.dir.y = -1
+		}
+
 	}
 
 }
@@ -257,9 +273,6 @@ scene_output :: proc(scene: ^cl.Scene) {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.Color{255, 255, 255, 255})
 
-	// for e in game.entities {
-	// 	rl.DrawRectangle(cast(i32)e.pos.x, cast(i32)e.pos.y, 16, 16, e.color)
-	// }
 
 	draw_player_target(game)
 	

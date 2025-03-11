@@ -54,26 +54,18 @@ path_render :: proc(g : ^Game){
     for k,v in g.paths_screens {
         rl.BeginTextureMode(v)
         rl.DrawRectangle(0,0,v.texture.width,v.texture.height,rl.Color{128,64,128,4})
+
+
+        for p in g.paths {
+                rl.DrawRectangle(cast(i32)p.pos.x,cast(i32)p.pos.y,4,4,p.color)
+        }
+
+        rl.DrawCircleGradient(cast(i32)g.player.pos.x,cast(i32)g.player.pos.y,32,rl.Color{16,186,255,64},rl.Color{16,16,16,0})
+        rl.DrawCircleGradient(cast(i32)g.player.pos.x,cast(i32)g.player.pos.y,64,rl.Color{16,186,255,32},rl.Color{16,16,16,0})
+        rl.DrawCircleGradient(cast(i32)g.player.pos.x,cast(i32)g.player.pos.y,128,rl.Color{16,186,220,16},rl.Color{16,16,16,0})
+
         rl.EndTextureMode()
     }
-
-    for p in g.paths {
-        if item, ok := g.paths_screens[{cast(i32)p.pos.x / width,cast(i32)p.pos.y /height }]; ok {
-            rl.BeginTextureMode(item)
-            rl.DrawRectangle(cast(i32)p.pos.x,cast(i32)p.pos.y,4,4,p.color)
-            rl.EndTextureMode()        
-        }
-    }
-
-    if item, ok := g.paths_screens[{cast(i32)g.player.pos.x / width,cast(i32)g.player.pos.y /height }]; ok {
-            rl.BeginTextureMode(item)
-            rl.DrawCircleGradient(cast(i32)g.player.pos.x,cast(i32)g.player.pos.y,32,rl.Color{16,186,255,64},rl.Color{16,16,16,0})
-            rl.DrawCircleGradient(cast(i32)g.player.pos.x,cast(i32)g.player.pos.y,64,rl.Color{16,186,255,32},rl.Color{16,16,16,0})
-            rl.DrawCircleGradient(cast(i32)g.player.pos.x,cast(i32)g.player.pos.y,128,rl.Color{16,186,220,16},rl.Color{16,16,16,0})
-            
-            rl.EndTextureMode()        
-        }
-
 
     for k,v in g.paths_screens {
         rl.DrawTextureRec(
