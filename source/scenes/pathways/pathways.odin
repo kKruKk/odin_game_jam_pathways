@@ -232,7 +232,7 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	obstacle_update(game, dt)
 
 	game.player.color = rl.Color{16, 16, 16, 255}
-	for o in game.obstacles {
+#reverse	for o in game.obstacles {
 		if rl.CheckCollisionPointRec(game.player.pos, o.rec) {
 			game.player.color.r = o.color.r + 64
 			game.player.color.g = o.color.g + 64
@@ -287,7 +287,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 	worm_render_to_texture(game)
 
 	rl.BeginTextureMode(game.target_main)
-	rl.ClearBackground(rl.Color{16, 16, 16, 255})
+	rl.ClearBackground(rl.Color{220, 186, 200, 255})
 
 	for o in game.obstacles {
 		rl.DrawRectangleRec(o.rec, o.color)

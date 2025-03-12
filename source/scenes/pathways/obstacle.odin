@@ -17,6 +17,12 @@ obstacle_update :: proc(g: ^Game, dt: f32) {
 		if o.rec.x < -o.rec.width {
 			o.rec.x = cast(f32)g.render_width
 			o.rec.y = cast(f32)rl.GetRandomValue(0, height - cast(i32)o.rec.height)
+			o.color = rl.Color {
+				cast(u8)rl.GetRandomValue(32, 186),
+				cast(u8)rl.GetRandomValue(32, 186),
+				cast(u8)rl.GetRandomValue(32, 186),
+				255,
+			}
 		}
 
 	}

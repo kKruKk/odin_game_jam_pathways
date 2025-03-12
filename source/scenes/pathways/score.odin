@@ -27,7 +27,7 @@ update_score :: proc(game: ^Game, dt: f32) {
 		// p.dir = rl.Vector2Normalize(p.dir)
 
 
-		if p.pos.x < game.player.pos.x + 64 &&
+		if p.pos.x < game.player.pos.x + 32 &&
 		   p.pos.x > game.player.pos.x &&
 		   p.pos.y + 64 > game.player.pos.y &&
 		   p.pos.y - 64 < game.player.pos.y {
