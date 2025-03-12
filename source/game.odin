@@ -67,7 +67,6 @@ init :: proc() {
 		//rl.SetConfigFlags({.VSYNC_HINT})
 	}
 	rl.InitWindow(window_width, window_height, title)
-
 	loop.update_step = MAX_UPS_DT
 	loop.max_ups = cast(u32)MAX_UPS
 	loop.max_ups_buffer = max_ups_buffer

@@ -12,13 +12,13 @@ worm_update :: proc(g: ^Game, dt: f32) {
 
 		if w.pos.x < 0 {
 
-			w.pos.x = cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 2)
-			w.pos.y = cast(f32)rl.GetRandomValue(-8, rl.GetScreenHeight() - 8)
+			w.pos.x = cast(f32)rl.GetRandomValue(g.render_width, g.render_width * 2)
+			w.pos.y = cast(f32)rl.GetRandomValue(-8, g.render_height - 8)
 
-		} else if w.pos.x < g.player.pos.x + 128 &&
+		} else if w.pos.x < g.player.pos.x + 64 &&
 		   w.pos.x > g.player.pos.x &&
-		   w.pos.y + 128 > g.player.pos.y &&
-		   w.pos.y - 128 < g.player.pos.y {
+		   w.pos.y + 64 > g.player.pos.y &&
+		   w.pos.y - 64 < g.player.pos.y {
 
 			if w.pos.y <= g.player.pos.y {
 				dir = {-1, cast(f32)rl.GetRandomValue(-8, 4)}
@@ -37,9 +37,8 @@ worm_update :: proc(g: ^Game, dt: f32) {
 	}
 }
 
-path_render :: proc(g: ^Game) {
-
-	rl.BeginTextureMode(g.worm_screen)
+worm_render_to_texture :: proc(g: ^Game){
+rl.BeginTextureMode(g.worm_screen)
 
 	rl.DrawRectangle(
 		0,
@@ -49,32 +48,28 @@ path_render :: proc(g: ^Game) {
 		rl.Color{128, 64, 128, 2},
 	)
 
-	sw: bool
+	render_score_particles(g)
+
 
 	for w in g.worms {
-		if sw {
-			sw = false
-			rl.DrawRectangle(cast(i32)w.pos.x, cast(i32)w.pos.y, 2, 2, w.color)
-		} else {
-			sw = true
-			rl.DrawPoly(w.pos, 8, 16, cast(f32)(rl.GetRandomValue(0, 360)), rl.Color{186,196,220,255})
-			
-		}
+		rl.DrawPoly(w.pos, 8, 16, cast(f32)(rl.GetRandomValue(0, 360)), rl.Color{186,196,220,255})
+		
 	}
 
+	color := g.player.color
 	rl.DrawCircleGradient(
 		cast(i32)g.player.pos.x,
 		cast(i32)g.player.pos.y,
-		64,
-		g.player.color,
-		rl.Color{0,0, 0, 0},
+		32,
+		rl.Color{color.b,color.g,color.r,255},
+		rl.Color{255,255, 255, 0},
 	)
 	// rl.DrawCircleGradient(
 	// 	cast(i32)g.player.pos.x,
 	// 	cast(i32)g.player.pos.y,
 	// 	64,
-	// 	rl.Color{16, 186, 255, 32},
-	// 	rl.Color{16, 16, 16, 0},
+	// 	rl.Color{color.b,color.g,color.r, 0},
+	// 	rl.Color{color.b,color.g,color.r, 64},
 	// )
 	// rl.DrawCircleGradient(
 	// 	cast(i32)g.player.pos.x,
@@ -85,10 +80,14 @@ path_render :: proc(g: ^Game) {
 	// )
 
 	rl.EndTextureMode()
+}
+worm_render :: proc(g: ^Game) {
+
+	
 
 	rl.DrawTextureRec(
 		g.worm_screen.texture,
-		{0, 0, cast(f32)rl.GetScreenWidth(), cast(f32)-rl.GetScreenHeight()},
+		{0, 0, cast(f32)g.render_width, cast(f32)-g.render_height},
 		{0, 0},
 		rl.WHITE,
 	)

@@ -25,14 +25,24 @@ create :: proc() -> ^Game {
 }
 
 Game :: struct {
-	using scene:  cl.Scene,
-	loop:         ^cl.Loop_Data,
-	should_close: bool,
-	is_fps_draw:  bool,
-	player:       Player,
-	worms:        [dynamic]Entity,
-	worm_screen:  rl.RenderTexture2D,
-	obstacles:    [dynamic]rl.Rectangle,
+	using scene:        cl.Scene,
+	loop:               ^cl.Loop_Data,
+	should_close:       bool,
+	is_fps_draw:        bool,
+	player:             Player,
+	worms:              [dynamic]Entity,
+	worm_screen:        rl.RenderTexture2D,
+	score_particles:    [dynamic]Score_Particle,
+	obstacles:          [dynamic]Entity_Obstacle,
+	target_main:        rl.RenderTexture2D,
+	window_width:       i32,
+	window_height:      i32,
+	render_width:       i32,
+	render_height:      i32,
+	pixel_size:         i32,
+	score:              i32,
+	score_increase:     i32,
+	score_text_mid_pos: rl.Vector2,
 }
 
 
@@ -55,8 +65,12 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game := cast(^Game)scene
 	game.loop = loop
 	game.is_fps_draw = true
-	width := rl.GetScreenWidth()
-	height := rl.GetScreenHeight()
+	game.window_width = rl.GetScreenWidth()
+	game.window_height = rl.GetScreenHeight()
+
+	game.pixel_size = 2
+	game.render_width = game.window_width / game.pixel_size
+	game.render_height = game.window_height / game.pixel_size
 
 	if false {
 		scene := entry_scene.create()
@@ -67,58 +81,62 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	}
 
 	{
-		game.player.pos = {100, 300}
+		game.player.pos = {cast(f32)game.render_width / 5, cast(f32)game.render_height / 2}
 		game.player.color = {
 			cast(u8)rl.GetRandomValue(186, 255),
 			cast(u8)rl.GetRandomValue(186, 255),
 			cast(u8)rl.GetRandomValue(186, 255),
 			255,
 		}
+		game.player.color = rl.Color{16, 16, 16, 255}
 	}
 
 
-	append(&game.player.target, rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight()))
-	append(&game.player.target, rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight()))
-	append(&game.player.target, rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight()))
+	append(&game.player.target, rl.LoadRenderTexture(game.render_width, game.render_height))
+	append(&game.player.target, rl.LoadRenderTexture(game.render_width, game.render_height))
+	append(&game.player.target, rl.LoadRenderTexture(game.render_width, game.render_height))
 	append(&game.player.target_pos_x, 0)
-	append(&game.player.target_pos_x, cast(f32)rl.GetScreenWidth())
-	append(&game.player.target_pos_x, cast(f32)rl.GetScreenWidth())
+	append(&game.player.target_pos_x, cast(f32)game.render_width / 2)
+	append(&game.player.target_pos_x, cast(f32)game.render_width)
 
 
 	// init paths and paths_screens 
 	{
 
-		entity: Entity
-		for it in 0 ..< 2500 {
-			entity = Entity {
-				pos   = {
-					cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 2),
-					cast(f32)rl.GetRandomValue(0, rl.GetScreenHeight()),
-				},
-				color = rl.Color {
-					cast(u8)rl.GetRandomValue(128, 255),
-					cast(u8)rl.GetRandomValue(128, 255),
-					cast(u8)rl.GetRandomValue(128, 255),
-					255,
-				},
+		e: Entity
+		for it in 0 ..< 500 {
+			e.pos = rl.Vector2 {
+				cast(f32)rl.GetRandomValue(game.render_width, game.render_width * 3),
+				cast(f32)rl.GetRandomValue(0, game.render_height),
+			}
+			e.color = rl.Color {
+				cast(u8)rl.GetRandomValue(128, 255),
+				cast(u8)rl.GetRandomValue(128, 255),
+				cast(u8)rl.GetRandomValue(128, 255),
+				255,
 			}
 
-
-			append(&game.worms, entity)
+			append(&game.worms, e)
 		}
 
-		game.worm_screen = rl.LoadRenderTexture(width, height)
+		game.worm_screen = rl.LoadRenderTexture(game.render_width, game.render_height)
 
 	}
 
 	{
 		// obstacles
-		e: rl.Rectangle
-		for it in 0 ..< 100 {
-			e.width = cast(f32)rl.GetRandomValue(32, 256)
-			e.height = cast(f32)rl.GetRandomValue(32, 256)
-			e.x = cast(f32)rl.GetRandomValue(rl.GetScreenWidth(), rl.GetScreenWidth() * 2)
-			e.y = cast(f32)rl.GetRandomValue(0 - cast(i32)e.height, rl.GetScreenHeight())
+		e: Entity_Obstacle
+		for it in 0 ..< 10 {
+			e.rec.width = cast(f32)rl.GetRandomValue(16, 128)
+			e.rec.height = cast(f32)rl.GetRandomValue(16, 128)
+			e.rec.x = cast(f32)rl.GetRandomValue(game.render_width, game.render_width * 2)
+			e.rec.y = cast(f32)rl.GetRandomValue(0 - cast(i32)e.rec.height, game.render_height)
+			e.color = rl.Color {
+				cast(u8)rl.GetRandomValue(32, 186),
+				cast(u8)rl.GetRandomValue(32, 186),
+				cast(u8)rl.GetRandomValue(32, 186),
+				255,
+			}
 
 			append(&game.obstacles, e)
 		}
@@ -126,6 +144,9 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 
 	}
 
+	game.target_main = rl.LoadRenderTexture(game.render_width, game.render_height)
+
+	game.score_text_mid_pos = {cast(f32)game.render_width / 2, 10}
 
 	return true
 }
@@ -141,7 +162,11 @@ scene_close :: proc(scene: ^cl.Scene) {
 	delete(game.player.target)
 	delete(game.worms)
 
+	delete(game.obstacles)
+	delete(game.score_particles)
+
 	rl.UnloadRenderTexture(game.worm_screen)
+	rl.UnloadRenderTexture(game.target_main)
 
 }
 @(private)
@@ -174,6 +199,7 @@ scene_input :: proc(scene: ^cl.Scene) {
 
 	if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
 		mouse := rl.GetMousePosition()
+		mouse /= cast(f32)game.pixel_size
 		diff := mouse - game.player.pos
 		if diff.x > 16 {
 			game.player.dir.x = 1
@@ -195,7 +221,7 @@ scene_input :: proc(scene: ^cl.Scene) {
 scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	game := cast(^Game)scene
 
-	speed: f32 = 200 * dt
+	speed: f32 = 100 * dt
 	game.player.dir = rl.Vector2Normalize(game.player.dir)
 	game.player.pos = game.player.pos + (game.player.dir * speed)
 
@@ -203,7 +229,19 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	speed = game.player.pos.x * dt
 
 	worm_update(game, dt)
-	obstacle_update(game,dt)
+	obstacle_update(game, dt)
+
+	game.player.color = rl.Color{16, 16, 16, 255}
+	for o in game.obstacles {
+		if rl.CheckCollisionPointRec(game.player.pos, o.rec) {
+			game.player.color.r = o.color.r + 64
+			game.player.color.g = o.color.g + 64
+			game.player.color.b = o.color.b + 64
+			break
+		}
+	}
+
+	update_score(game, dt)
 
 	return true
 }
@@ -211,20 +249,16 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 
 draw_player_target :: proc(g: ^Game) {
 
-	color: rl.Color = {16, 16, 16, 4}
+	color: rl.Color = {16, 16, 16, 2}
 	for t, index in g.player.target {
-		// if index == 1 {
-		// 	color = {16,16,16,64}
-		// } else if index == 2 {
-		// 	color = {0,255,255,64}
-		// }
 
 		rl.BeginTextureMode(t)
-		rl.DrawRectangle(0, 0, rl.GetScreenWidth(), rl.GetScreenHeight(), color)
+
+		rl.DrawRectangle(0, 0, g.render_width, g.render_height, color)
 		pos := g.player.pos
 		pos.x -= g.player.target_pos_x[index]
 
-		rl.DrawPoly(pos, 3, 16, cast(f32)(rl.GetRandomValue(0, 360)), g.player.color)
+		rl.DrawPoly(pos, 3, 8, cast(f32)(rl.GetRandomValue(0, 360)), g.player.color)
 
 		rl.EndTextureMode()
 
@@ -249,32 +283,55 @@ draw_player_target :: proc(g: ^Game) {
 scene_output :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
+	draw_player_target(game)
+	worm_render_to_texture(game)
 
-	rl.BeginDrawing()
+	rl.BeginTextureMode(game.target_main)
 	rl.ClearBackground(rl.Color{16, 16, 16, 255})
 
 	for o in game.obstacles {
-		rl.DrawRectangleRec(o,rl.Color{64,92,128,255})
+		rl.DrawRectangleRec(o.rec, o.color)
 	}
 
-
-	draw_player_target(game)
 
 	for t, index in game.player.target {
 		rl.DrawTextureRec(
 			t.texture,
-			{0, 0, cast(f32)rl.GetScreenWidth(), cast(f32)-rl.GetScreenHeight()},
+			{0, 0, cast(f32)game.render_width, cast(f32)-game.render_height},
 			{game.player.target_pos_x[index], 0},
 			rl.WHITE,
 		)
 	}
-	path_render(game)
+	worm_render(game)
+	//render_score_particles(game)
 
-	rl.DrawPoly(game.player.pos, 3, 16, cast(f32)(rl.GetRandomValue(0, 360)), game.player.color)
+	rl.DrawPoly(game.player.pos, 3, 8, cast(f32)(rl.GetRandomValue(0, 360)), game.player.color)
+
+	text: cstring = fmt.ctprint("SCORE", game.score)
+	text_size := rl.MeasureText(text, 10)
+
+	txt_pos := rl.Vector2{cast(f32)(game.render_width / 2) - cast(f32)(text_size / 2), 10}
+	rl.DrawText(text, cast(i32)txt_pos.x, cast(i32)txt_pos.y, 10, rl.PINK)
+
+	text = fmt.ctprint("+", game.score_increase)
+	text_size = rl.MeasureText(text, 10)
+	rl.DrawText(text, game.render_width / 2 - (text_size / 2), 20, 10, rl.PINK)
 
 	if (game.is_fps_draw) {
-		rl.DrawText(rl.TextFormat("FPS: %i", game.loop.stat_fps), 10, 10, 20, rl.GREEN)
+		rl.DrawText(rl.TextFormat("FPS: %i", game.loop.stat_fps), 10, 10, 10, rl.GREEN)
 	}
+	rl.EndTextureMode()
+
+	rl.BeginDrawing()
+
+	rl.DrawTexturePro(
+		game.target_main.texture,
+		{0, 0, cast(f32)game.render_width, cast(f32)-game.render_height},
+		{0, 0, cast(f32)game.window_width, cast(f32)game.window_height},
+		{0, 0},
+		0,
+		rl.WHITE,
+	)
 	rl.EndDrawing()
 
 
