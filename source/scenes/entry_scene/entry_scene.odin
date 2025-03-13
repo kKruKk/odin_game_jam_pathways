@@ -233,6 +233,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.Color{16, 16, 16, 255})
+	//rl.ClearBackground(rl.Color{168, 186, 200, 255})
 
 	rl.DrawTextureRec(game.target.texture, {0, 0, width, -height}, {0, 0}, rl.WHITE)
 

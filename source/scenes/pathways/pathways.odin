@@ -46,6 +46,10 @@ Game :: struct {
 	music:              rl.Music,
 	music_texture:      rl.Texture2D,
 	is_music_off:       bool,
+	is_fade_in:         bool,
+	fade_in_alpha:      u8,
+	fade_in_time:       f32,
+	fade_in_time_acc:   f32,
 }
 
 
@@ -185,6 +189,10 @@ scene_on_enter :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 	rl.SetMusicVolume(game.music, 0.5)
 	rl.PlayMusicStream(game.music)
+	game.is_fade_in = true
+	game.fade_in_alpha = 255
+	game.fade_in_time = 5
+	game.fade_in_time_acc = 0
 }
 
 
@@ -371,8 +379,27 @@ scene_output :: proc(scene: ^cl.Scene) {
 	if game.is_music_off {
 		music_color = rl.GRAY
 	}
+
 	rl.DrawTexture(game.music_texture, cast(i32)rl.GetScreenWidth() - 64, 32, music_color)
 
+	if game.is_fade_in {
+
+		rl.DrawRectangle(
+			0,
+			0,
+			game.window_width,
+			game.window_height,
+			rl.Color{16, 16, 16, game.fade_in_alpha},
+		)
+		
+		
+		game.fade_in_time_acc += cast(f32)game.loop.render_step
+		
+		game.fade_in_alpha = cast(u8)(255 - 255 * (game.fade_in_time_acc / game.fade_in_time))
+		if game.fade_in_time_acc >= game.fade_in_time || game.fade_in_alpha == 0 {
+			game.is_fade_in = false
+		}
+	}
 	rl.EndDrawing()
 
 
