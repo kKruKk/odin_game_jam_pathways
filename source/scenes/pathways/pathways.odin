@@ -44,6 +44,8 @@ Game :: struct {
 	score_increase:     i32,
 	score_text_mid_pos: rl.Vector2,
 	music:              rl.Music,
+	music_texture:      rl.Texture2D,
+	is_music_off:       bool,
 }
 
 
@@ -66,7 +68,7 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game := cast(^Game)scene
 	game.loop = loop
 	game.is_fps_draw = true
-	
+
 	game.window_width = rl.GetScreenWidth()
 	game.window_height = rl.GetScreenHeight()
 
@@ -81,7 +83,7 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 		cl.scene_manager_insert(game.loop.scene_manager, scene, cast(u16)sn.Scene_Name.ENTRY)
 		cl.scene_manager_next(game.loop.scene_manager, cast(u16)sn.Scene_Name.ENTRY)
 		cl.scene_manager_change(game.loop.scene_manager)
-		
+
 	}
 
 	{
@@ -153,9 +155,8 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game.score_text_mid_pos = {cast(f32)game.render_width / 2, 10}
 
 
-	
 	game.music = rl.LoadMusicStream("assets/odin_game_jam_music.mp3")
-
+	game.music_texture = rl.LoadTexture("assets/music_note.png")
 	return true
 }
 
@@ -176,12 +177,13 @@ scene_close :: proc(scene: ^cl.Scene) {
 	rl.UnloadRenderTexture(game.worm_screen)
 	rl.UnloadRenderTexture(game.target_main)
 	rl.UnloadMusicStream(game.music)
+	rl.UnloadTexture(game.music_texture)
 
 }
 @(private)
 scene_on_enter :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
-	rl.SetMusicVolume(game.music,0.5)
+	rl.SetMusicVolume(game.music, 0.5)
 	rl.PlayMusicStream(game.music)
 }
 
@@ -210,10 +212,16 @@ scene_input :: proc(scene: ^cl.Scene) {
 		game.player.dir.x = 1
 	}
 
-	if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
-		mouse := rl.GetMousePosition()
+	mouse := rl.GetMousePosition()
+	if rl.CheckCollisionPointRec(mouse, {cast(f32)rl.GetScreenWidth() - 64, 32, 16, 16}) {
+		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+			game.is_music_off = !game.is_music_off
+		}
+	} else if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
+
 		mouse /= cast(f32)game.pixel_size
 		diff := mouse - game.player.pos
+
 		if diff.x > 16 {
 			game.player.dir.x = 1
 		} else if diff.x < -16 {
@@ -225,6 +233,7 @@ scene_input :: proc(scene: ^cl.Scene) {
 			game.player.dir.y = -1
 		}
 
+
 	}
 
 }
@@ -235,8 +244,15 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	game := cast(^Game)scene
 
 	rl.UpdateMusicStream(game.music)
-	
-	speed: f32 = 100 
+
+
+	if game.is_music_off {
+		rl.SetMusicVolume(game.music, 0)
+	} else {
+		rl.SetMusicVolume(game.music, 0.5)
+	}
+
+	speed: f32 = 100
 	game.player.dir = rl.Vector2Normalize(game.player.dir)
 	game.player.pos = game.player.pos + (game.player.dir * speed * dt)
 
@@ -296,7 +312,6 @@ draw_player_target :: proc(g: ^Game) {
 scene_output :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
-	
 
 	draw_player_target(game)
 	worm_render_to_texture(game)
@@ -333,9 +348,12 @@ scene_output :: proc(scene: ^cl.Scene) {
 	text_size = rl.MeasureText(text, 10)
 	rl.DrawText(text, game.render_width / 2 - (text_size / 2), 20, 10, rl.PINK)
 
+
 	if (game.is_fps_draw) {
 		rl.DrawText(rl.TextFormat("FPS: %i", game.loop.stat_fps), 10, 10, 10, rl.GREEN)
 	}
+
+
 	rl.EndTextureMode()
 
 	rl.BeginDrawing()
@@ -348,6 +366,13 @@ scene_output :: proc(scene: ^cl.Scene) {
 		0,
 		rl.WHITE,
 	)
+
+	music_color := rl.PINK
+	if game.is_music_off {
+		music_color = rl.GRAY
+	}
+	rl.DrawTexture(game.music_texture, cast(i32)rl.GetScreenWidth() - 64, 32, music_color)
+
 	rl.EndDrawing()
 
 
@@ -355,7 +380,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 @(private)
 scene_each_second :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
-	
+
 
 	fmt.printfln(
 		"update  %0.3f ms\nrender  %0.3f ms\nloop    %0.3f ms\n",

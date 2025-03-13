@@ -37,6 +37,8 @@ Game :: struct {
 	target:              rl.RenderTexture2D,
 	entities:            [dynamic]Entity,
 	music:               rl.Music,
+	music_texture:       rl.Texture2D,
+	is_music_off:        bool,
 }
 
 Entity :: struct {
@@ -84,8 +86,8 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game.close_counter = cast(i32)game.loop.max_ups
 
 	game.music = rl.LoadMusicStream("assets/odin_game_jam_music_intro.mp3")
-	
-	
+	game.music_texture = rl.LoadTexture("assets/music_note.png")
+
 	return true
 }
 @(private)
@@ -95,6 +97,7 @@ scene_close :: proc(scene: ^cl.Scene) {
 	delete(game.entities)
 	rl.UnloadMusicStream(game.music)
 	rl.UnloadRenderTexture(game.target)
+	rl.UnloadTexture(game.music_texture)
 }
 @(private)
 scene_on_enter :: proc(scene: ^cl.Scene) {
@@ -114,22 +117,34 @@ scene_input :: proc(scene: ^cl.Scene) {
 		game.is_fps_draw = !game.is_fps_draw
 	}
 
+	if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && rl.CheckCollisionPointRec(rl.GetMousePosition(),{cast(f32)rl.GetScreenWidth()-64,32,16,16})
+	{
+		game.is_music_off = !game.is_music_off
+	}
+
 }
 
 
 @(private)
 scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	game := cast(^Game)scene
-	
-	if rl.IsMusicReady(game.music) == false { return true}
 
-	if  rl.GetMusicTimePlayed(game.music)/rl.GetMusicTimeLength(game.music) >= 0.9 {
-		
+	if rl.IsMusicReady(game.music) == false {return true}
+
+	if rl.GetMusicTimePlayed(game.music) / rl.GetMusicTimeLength(game.music) >= 0.9 {
+
 		rl.StopMusicStream(game.music)
-	
-	} 
-		
+
+	}
+
 	rl.UpdateMusicStream(game.music)
+	
+	
+	if game.is_music_off {
+		rl.SetMusicVolume(game.music,0)
+	} else {
+		rl.SetMusicVolume(game.music,0.5)
+	}
 
 	if game.should_close {
 		game.text_y -= 30 * dt
@@ -237,6 +252,13 @@ scene_output :: proc(scene: ^cl.Scene) {
 		rl.DrawText("PLAY", 382, 292, 20, rl.Color{16, 16, 16, 255})
 		rl.DrawText("PLAY", 380, 290, 20, rl.PINK)
 	}
+
+	music_color := rl.PINK 
+	if game.is_music_off {
+		music_color = rl.GRAY
+	}
+	rl.DrawTexture(game.music_texture, cast(i32)width - 64, 32, music_color)
+
 	rl.EndDrawing()
 }
 
