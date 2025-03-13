@@ -43,6 +43,7 @@ Game :: struct {
 	score:              i32,
 	score_increase:     i32,
 	score_text_mid_pos: rl.Vector2,
+	music:              rl.Music,
 }
 
 
@@ -65,6 +66,7 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game := cast(^Game)scene
 	game.loop = loop
 	game.is_fps_draw = true
+	
 	game.window_width = rl.GetScreenWidth()
 	game.window_height = rl.GetScreenHeight()
 
@@ -72,12 +74,14 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game.render_width = game.window_width / game.pixel_size
 	game.render_height = game.window_height / game.pixel_size
 
-	if false {
+	//if false
+	{
 		scene := entry_scene.create()
+		scene->init(game.loop)
 		cl.scene_manager_insert(game.loop.scene_manager, scene, cast(u16)sn.Scene_Name.ENTRY)
 		cl.scene_manager_next(game.loop.scene_manager, cast(u16)sn.Scene_Name.ENTRY)
 		cl.scene_manager_change(game.loop.scene_manager)
-		game.loop.scene_manager.scene->init(game.loop)
+		
 	}
 
 	{
@@ -148,6 +152,10 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 
 	game.score_text_mid_pos = {cast(f32)game.render_width / 2, 10}
 
+
+	
+	game.music = rl.LoadMusicStream("assets/odin_game_jam_music.mp3")
+
 	return true
 }
 
@@ -167,10 +175,15 @@ scene_close :: proc(scene: ^cl.Scene) {
 
 	rl.UnloadRenderTexture(game.worm_screen)
 	rl.UnloadRenderTexture(game.target_main)
+	rl.UnloadMusicStream(game.music)
 
 }
 @(private)
-scene_on_enter :: proc(scene: ^cl.Scene) {}
+scene_on_enter :: proc(scene: ^cl.Scene) {
+	game := cast(^Game)scene
+	rl.SetMusicVolume(game.music,0.5)
+	rl.PlayMusicStream(game.music)
+}
 
 
 @(private)
@@ -221,18 +234,18 @@ scene_input :: proc(scene: ^cl.Scene) {
 scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	game := cast(^Game)scene
 
-	speed: f32 = 100 * dt
+	rl.UpdateMusicStream(game.music)
+	
+	speed: f32 = 100 
 	game.player.dir = rl.Vector2Normalize(game.player.dir)
-	game.player.pos = game.player.pos + (game.player.dir * speed)
+	game.player.pos = game.player.pos + (game.player.dir * speed * dt)
 
-
-	speed = game.player.pos.x * dt
 
 	worm_update(game, dt)
 	obstacle_update(game, dt)
 
 	game.player.color = rl.Color{16, 16, 16, 255}
-#reverse	for o in game.obstacles {
+	#reverse for o in game.obstacles {
 		if rl.CheckCollisionPointRec(game.player.pos, o.rec) {
 			game.player.color.r = o.color.r + 64
 			game.player.color.g = o.color.g + 64
@@ -283,6 +296,8 @@ draw_player_target :: proc(g: ^Game) {
 scene_output :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
+	
+
 	draw_player_target(game)
 	worm_render_to_texture(game)
 
@@ -304,6 +319,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 	}
 	worm_render(game)
 	//render_score_particles(game)
+	rl.UpdateMusicStream(game.music)
 
 	rl.DrawPoly(game.player.pos, 3, 8, cast(f32)(rl.GetRandomValue(0, 360)), game.player.color)
 
@@ -339,6 +355,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 @(private)
 scene_each_second :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
+	
 
 	fmt.printfln(
 		"update  %0.3f ms\nrender  %0.3f ms\nloop    %0.3f ms\n",

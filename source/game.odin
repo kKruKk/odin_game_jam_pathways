@@ -16,7 +16,7 @@ window_width, window_height: i32
 title: cstring
 max_ups: f64 : 120
 max_fps: f64 : 60
-max_ups_buffer: u32 = 8
+max_ups_buffer: u32 = 10
 
 MAX_UPS: f64 = max_ups
 MAX_FPS: f64 = max_fps
@@ -55,18 +55,19 @@ init :: proc() {
 
 	
 
-	scene = g.create()
-	if scene == nil {return}
-	sm = cl.scene_manager_create(scene)
+	
 
 	window_width = 800
 	window_height = 600
-	title = "find your path"
+	title = "throughTheSky"
 	//rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
 	when ODIN_OS == .JS {
 		//rl.SetConfigFlags({.VSYNC_HINT})
 	}
 	rl.InitWindow(window_width, window_height, title)
+	// audio
+	rl.InitAudioDevice()
+
 	loop.update_step = MAX_UPS_DT
 	loop.max_ups = cast(u32)MAX_UPS
 	loop.max_ups_buffer = max_ups_buffer
@@ -75,6 +76,10 @@ init :: proc() {
 	loop.render_step = MAX_FPS_DT
 	loop.max_fps = cast(u32)MAX_FPS
 
+	scene = g.create()
+	if scene == nil {return}
+
+	sm = cl.scene_manager_create(scene)
 	loop.scene_manager = &sm
 	if !sm.scene->init(&loop) {
 		return
@@ -86,6 +91,7 @@ init :: proc() {
 		is_running = true
 	}
 
+	
 }
 
 update :: proc() {
@@ -204,6 +210,7 @@ parent_window_size_changed :: proc(w, h: int) {
 shutdown :: proc() {
 	free_all(context.temp_allocator)
 	cl.destroy_scene_manager(&sm)
+	rl.CloseAudioDevice()
 	rl.CloseWindow()
 }
 

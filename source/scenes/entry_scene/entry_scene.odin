@@ -36,6 +36,7 @@ Game :: struct {
 	is_show_button:      bool,
 	target:              rl.RenderTexture2D,
 	entities:            [dynamic]Entity,
+	music:               rl.Music,
 }
 
 Entity :: struct {
@@ -52,7 +53,7 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game.loop = loop
 
 	// text 
-	game.text_str = "yOuR path"
+	game.text_str = "throughTheSky"
 	text_size := rl.MeasureTextEx(rl.GetFontDefault(), game.text_str, 40, 2)
 	game.text_x = cast(f32)rl.GetScreenWidth() / 2 - text_size.x / 2
 	game.text_y = 0 - text_size.y
@@ -82,6 +83,9 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 
 	game.close_counter = cast(i32)game.loop.max_ups
 
+	game.music = rl.LoadMusicStream("assets/odin_game_jam_music_intro.mp3")
+	
+	
 	return true
 }
 @(private)
@@ -89,10 +93,18 @@ scene_close :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
 	delete(game.entities)
+	rl.UnloadMusicStream(game.music)
 	rl.UnloadRenderTexture(game.target)
 }
 @(private)
-scene_on_enter :: proc(scene: ^cl.Scene) {}
+scene_on_enter :: proc(scene: ^cl.Scene) {
+	game := cast(^Game)scene
+
+	rl.SetMusicVolume(game.music, 0.5)
+	rl.PlayMusicStream(game.music)
+
+
+}
 
 
 @(private)
@@ -106,8 +118,18 @@ scene_input :: proc(scene: ^cl.Scene) {
 
 
 @(private)
-scene_update :: proc(scene: ^cl.Scene,dt : f32) -> bool {
+scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	game := cast(^Game)scene
+	
+	if rl.IsMusicReady(game.music) == false { return true}
+
+	if  rl.GetMusicTimePlayed(game.music)/rl.GetMusicTimeLength(game.music) >= 0.9 {
+		
+		rl.StopMusicStream(game.music)
+	
+	} 
+		
+	rl.UpdateMusicStream(game.music)
 
 	if game.should_close {
 		game.text_y -= 30 * dt
@@ -116,14 +138,14 @@ scene_update :: proc(scene: ^cl.Scene,dt : f32) -> bool {
 	} else {
 		game.show_button_coutner += 1
 
-		if game.show_button_coutner > cast(u32)(1/dt) {
+		if game.show_button_coutner > cast(u32)(1 / dt) {
 
 			game.is_show_button = true
 			if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) &&
-			   rl.CheckCollisionPointRec(rl.GetMousePosition(), {350, 290, 100, 20}) ||
-			   rl.IsKeyPressed(.SPACE){
+				   rl.CheckCollisionPointRec(rl.GetMousePosition(), {350, 290, 100, 20}) ||
+			   rl.IsKeyPressed(.SPACE) {
 				game.should_close = true
-			} 
+			}
 		}
 	}
 
@@ -171,6 +193,8 @@ scene_update :: proc(scene: ^cl.Scene,dt : f32) -> bool {
 @(private)
 scene_output :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
+
+	rl.UpdateMusicStream(game.music)
 
 	width := cast(f32)rl.GetScreenWidth()
 	height := cast(f32)rl.GetScreenHeight()
