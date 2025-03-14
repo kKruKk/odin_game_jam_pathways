@@ -1,5 +1,5 @@
 *.sublime-workspace
 build/
 ols.json
-vscode/
 launch.json
+.vscode/
