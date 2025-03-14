@@ -5,11 +5,10 @@ import "core:c"
 import rl "vendor:raylib"
 
 import cl "core_loop"
-import  "scenes/click_scene"
-import  "scenes/entry_scene"
+import "scenes/click_scene"
+import "scenes/entry_scene"
 
 import "core:time"
-
 
 
 loop: cl.Loop_Data
@@ -55,9 +54,6 @@ sm: cl.Scene_Manager
 
 init :: proc() {
 
-	
-
-	
 
 	window_width = 800
 	window_height = 600
@@ -78,11 +74,12 @@ init :: proc() {
 	loop.render_step = MAX_FPS_DT
 	loop.max_fps = cast(u32)MAX_FPS
 
-	when ODIN_OS != .JS {
-		scene = entry_scene.create()
-	} else {
-		scene = click_scene.create()
-	}
+	scene = entry_scene.create()
+	// when ODIN_OS != .JS {
+	// 	scene = entry_scene.create()
+	// } else {
+	// 	scene = click_scene.create()
+	// }
 	if scene == nil {return}
 
 	sm = cl.scene_manager_create(scene)
@@ -97,7 +94,7 @@ init :: proc() {
 		is_running = true
 	}
 
-	
+
 }
 
 update :: proc() {

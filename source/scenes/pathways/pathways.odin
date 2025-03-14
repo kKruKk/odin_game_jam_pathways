@@ -154,7 +154,7 @@ scene_on_enter :: proc(scene: ^cl.Scene) {
 scene_input :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
-	if game.is_fade_in { return }
+	if game.fade_in_time_acc < 2 { return }
 
 	if rl.IsKeyPressed(.F1) {
 		game.is_fps_draw = !game.is_fps_draw
