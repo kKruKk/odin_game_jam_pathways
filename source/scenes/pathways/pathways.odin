@@ -5,9 +5,6 @@ import rl "vendor:raylib"
 
 import cl "../../core_loop"
 
-import sn ".."
-import "../entry_scene"
-
 create :: proc() -> ^Game {
 
 	scene := new(Game)
@@ -114,18 +111,7 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game.music = rl.LoadMusicStream("assets/odin_game_jam_music.mp3")
 	game.music_texture = rl.LoadTexture("assets/music_note.png")
 
-
-	if false {
-		scene := entry_scene.create()
-		scene->init(game.loop)
-		cl.scene_manager_insert(game.loop.scene_manager, scene, cast(u16)sn.Scene_Name.ENTRY)
-		cl.scene_manager_next(game.loop.scene_manager, cast(u16)sn.Scene_Name.ENTRY)
-		cl.scene_manager_change(game.loop.scene_manager)
-
-	} else {
-		rl.PlayMusicStream(game.music)
-	}
-
+	rl.SetWindowFocused()
 	return true
 }
 

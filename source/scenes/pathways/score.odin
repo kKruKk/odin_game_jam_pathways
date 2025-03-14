@@ -34,11 +34,8 @@ update_score :: proc(game: ^Game, dt: f32) {
 
 		if p.pos.x < 0 {
 			unordered_remove(&game.score_particles, index)
-			when ODIN_OS == .JS {
-				game.score += 2
-			} else {
-				game.score += 1
-			}
+			game.score += 2
+
 		}
 	}
 
@@ -55,18 +52,14 @@ update_score :: proc(game: ^Game, dt: f32) {
 		particle: Entity
 
 		max_spawn: i32
+		max_spawn = game.score_increase / 2
 
-		when ODIN_OS == .JS {
-			max_spawn = game.score_increase / 2
-		} else {
-			max_spawn = game.score_increase
-		}
 		for _ in 0 ..< max_spawn {
 			particle.pos = {
 				cast(f32)rl.GetRandomValue(game.render_width, game.render_width * 2),
 				cast(f32)rl.GetRandomValue(0, game.render_height),
 			}
-		
+
 			particle.dir = {-1, 0}
 
 			particle.speed = cast(f32)rl.GetRandomValue(60, 120)

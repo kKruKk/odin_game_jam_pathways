@@ -5,12 +5,13 @@ import "core:c"
 import rl "vendor:raylib"
 
 import cl "core_loop"
-import g "scenes/pathways"
+import  "scenes/click_scene"
+import  "scenes/entry_scene"
 
 import "core:time"
 
 
-game_scene: g.Game
+
 loop: cl.Loop_Data
 
 window_width, window_height: i32
@@ -77,7 +78,11 @@ init :: proc() {
 	loop.render_step = MAX_FPS_DT
 	loop.max_fps = cast(u32)MAX_FPS
 
-	scene = g.create()
+	when ODIN_OS != .JS {
+		scene = entry_scene.create()
+	} else {
+		scene = click_scene.create()
+	}
 	if scene == nil {return}
 
 	sm = cl.scene_manager_create(scene)

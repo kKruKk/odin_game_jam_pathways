@@ -5,6 +5,8 @@ import rl "vendor:raylib"
 
 import cl "../../core_loop"
 
+import sn "../"
+import "../pathways"
 
 create :: proc() -> ^Game {
 
@@ -87,6 +89,7 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 
 	game.music = rl.LoadMusicStream("assets/odin_game_jam_music_intro.mp3")
 	game.music_texture = rl.LoadTexture("assets/music_note.png")
+	rl.PlayMusicStream(game.music)
 
 	return true
 }
@@ -195,8 +198,15 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	}
 
 	if game.close_counter <= 0 {
+
 		scene->close()
-		cl.scene_manager_next(game.loop.scene_manager, 0)
+		cl.scene_manager_remove(game.loop.scene_manager,cast(u16)sn.Scene_Name.ENTRY)
+
+		path := pathways.create()
+		path->init(game.loop)
+
+		cl.scene_manager_insert(game.loop.scene_manager,path,cast(u16)sn.Scene_Name.PATHWAYS)
+		cl.scene_manager_next(game.loop.scene_manager, cast(u16)sn.Scene_Name.PATHWAYS)
 		cl.scene_manager_change(game.loop.scene_manager)
 	}
 
@@ -247,10 +257,16 @@ scene_output :: proc(scene: ^cl.Scene) {
 		rl.DrawText(rl.TextFormat("FPS: %i", game.loop.stat_fps), 10, 10, 20, rl.GREEN)
 	}
 
+	text: cstring = "PLAY"
+	text_size := rl.MeasureText(text,20)
+	text_x := rl.GetScreenWidth()/2 - text_size/2
+
 	if game.is_show_button && !game.should_close {
-		rl.DrawText("PLAY", 382, 292, 20, rl.Color{16, 16, 16, 255})
-		rl.DrawText("PLAY", 380, 290, 20, rl.PINK)
+		rl.DrawText(text, text_x, 292, 20, rl.Color{16, 16, 16, 255})
+		rl.DrawText(text, text_x, 290, 20, rl.PINK)
 	}
+
+	
 
 	music_color := rl.PINK
 	if game.is_music_off {

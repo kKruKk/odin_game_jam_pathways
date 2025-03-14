@@ -1,6 +1,6 @@
 package pathways
 
-import rl"vendor:raylib"
+import rl "vendor:raylib"
 
 
 particle_render_to_texture :: proc(g: ^Game) {
@@ -15,9 +15,9 @@ particle_render_to_texture :: proc(g: ^Game) {
 	)
 
 	render_score_particles(g)
-    render_cloud_particle(g)
+	render_cloud_particle(g)
 
-	
+
 	color := g.player.color
 	rl.DrawCircleGradient(
 		cast(i32)g.player.pos.x,
