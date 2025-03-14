@@ -33,7 +33,8 @@ Game :: struct {
 	worms:              [dynamic]Entity,
 	worm_screen:        rl.RenderTexture2D,
 	score_particles:    [dynamic]Score_Particle,
-	obstacles:          [dynamic]Entity_Obstacle,
+	obstacles:          [dynamic]Entity_PATH_SEGMENT,
+	obstacle_last:      rl.Rectangle,
 	target_main:        rl.RenderTexture2D,
 	window_width:       i32,
 	window_height:      i32,
@@ -80,15 +81,6 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game.render_width = game.window_width / game.pixel_size
 	game.render_height = game.window_height / game.pixel_size
 
-	//if false
-	{
-		scene := entry_scene.create()
-		scene->init(game.loop)
-		cl.scene_manager_insert(game.loop.scene_manager, scene, cast(u16)sn.Scene_Name.ENTRY)
-		cl.scene_manager_next(game.loop.scene_manager, cast(u16)sn.Scene_Name.ENTRY)
-		cl.scene_manager_change(game.loop.scene_manager)
-
-	}
 
 	{
 		game.player.pos = {cast(f32)game.render_width / 5, cast(f32)game.render_height / 2}
@@ -135,19 +127,34 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 
 	{
 		// obstacles
-		e: Entity_Obstacle
+		e: Entity_PATH_SEGMENT
 		for it in 0 ..< 10 {
-			e.rec.width = cast(f32)rl.GetRandomValue(16, 128)
-			e.rec.height = cast(f32)rl.GetRandomValue(16, 128)
-			e.rec.x = cast(f32)rl.GetRandomValue(game.render_width, game.render_width * 2)
-			e.rec.y = cast(f32)rl.GetRandomValue(0 - cast(i32)e.rec.height, game.render_height)
-			e.color = rl.Color {
-				cast(u8)rl.GetRandomValue(32, 186),
-				cast(u8)rl.GetRandomValue(32, 186),
-				cast(u8)rl.GetRandomValue(32, 186),
-				255,
-			}
+			if it == 0 {
 
+				e.rec.width = cast(f32)rl.GetRandomValue(16, 128)
+				e.rec.height = cast(f32)rl.GetRandomValue(16, 128)
+				e.rec.x = cast(f32)rl.GetRandomValue(game.render_width, game.render_width * 2)
+				e.rec.y = cast(f32)rl.GetRandomValue(0 - cast(i32)e.rec.height, game.render_height)
+				e.color = rl.Color {
+					cast(u8)rl.GetRandomValue(32, 186),
+					cast(u8)rl.GetRandomValue(32, 186),
+					cast(u8)rl.GetRandomValue(32, 186),
+					255,
+				}
+
+			} else {
+
+
+				obstacle_generate_position(&e, game)
+
+				e.color = rl.Color {
+					cast(u8)rl.GetRandomValue(32, 186),
+					cast(u8)rl.GetRandomValue(32, 186),
+					cast(u8)rl.GetRandomValue(32, 186),
+					255,
+				}
+			}
+			game.obstacle_last = e.rec
 			append(&game.obstacles, e)
 		}
 
@@ -161,6 +168,19 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 
 	game.music = rl.LoadMusicStream("assets/odin_game_jam_music.mp3")
 	game.music_texture = rl.LoadTexture("assets/music_note.png")
+
+
+	if false {
+		scene := entry_scene.create()
+		scene->init(game.loop)
+		cl.scene_manager_insert(game.loop.scene_manager, scene, cast(u16)sn.Scene_Name.ENTRY)
+		cl.scene_manager_next(game.loop.scene_manager, cast(u16)sn.Scene_Name.ENTRY)
+		cl.scene_manager_change(game.loop.scene_manager)
+
+	} else {
+		rl.PlayMusicStream(game.music)
+	}
+
 	return true
 }
 
@@ -187,7 +207,6 @@ scene_close :: proc(scene: ^cl.Scene) {
 @(private)
 scene_on_enter :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
-	rl.SetMusicVolume(game.music, 0.5)
 	rl.PlayMusicStream(game.music)
 	game.is_fade_in = true
 	game.fade_in_alpha = 255
@@ -257,7 +276,7 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	if game.is_music_off {
 		rl.SetMusicVolume(game.music, 0)
 	} else {
-		rl.SetMusicVolume(game.music, 0.5)
+		rl.SetMusicVolume(game.music, 1.0)
 	}
 
 	speed: f32 = 100
@@ -327,9 +346,8 @@ scene_output :: proc(scene: ^cl.Scene) {
 	rl.BeginTextureMode(game.target_main)
 	rl.ClearBackground(rl.Color{220, 186, 200, 255})
 
-	for o in game.obstacles {
-		rl.DrawRectangleRec(o.rec, o.color)
-	}
+
+	obstacle_render(game)
 
 
 	for t, index in game.player.target {
@@ -340,8 +358,8 @@ scene_output :: proc(scene: ^cl.Scene) {
 			rl.WHITE,
 		)
 	}
-	worm_render(game)
-	//render_score_particles(game)
+	//worm_render(game)
+
 	rl.UpdateMusicStream(game.music)
 
 	rl.DrawPoly(game.player.pos, 3, 8, cast(f32)(rl.GetRandomValue(0, 360)), game.player.color)
@@ -391,10 +409,10 @@ scene_output :: proc(scene: ^cl.Scene) {
 			game.window_height,
 			rl.Color{16, 16, 16, game.fade_in_alpha},
 		)
-		
-		
+
+
 		game.fade_in_time_acc += cast(f32)game.loop.render_step
-		
+
 		game.fade_in_alpha = cast(u8)(255 - 255 * (game.fade_in_time_acc / game.fade_in_time))
 		if game.fade_in_time_acc >= game.fade_in_time || game.fade_in_alpha == 0 {
 			game.is_fade_in = false

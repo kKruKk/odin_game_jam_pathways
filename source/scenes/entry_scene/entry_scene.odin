@@ -103,10 +103,7 @@ scene_close :: proc(scene: ^cl.Scene) {
 scene_on_enter :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
-	rl.SetMusicVolume(game.music, 0.5)
 	rl.PlayMusicStream(game.music)
-
-
 }
 
 
@@ -143,7 +140,7 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	if game.is_music_off {
 		rl.SetMusicVolume(game.music,0)
 	} else {
-		rl.SetMusicVolume(game.music,0.5)
+		rl.SetMusicVolume(game.music,1.0)
 	}
 
 	if game.should_close {
