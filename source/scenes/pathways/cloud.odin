@@ -3,8 +3,8 @@ package pathways
 import rl "vendor:raylib"
 
 Cloud_Cluster :: struct {
-	clouds:              [dynamic]Entity,
-	clouds_screen:        rl.RenderTexture2D,
+	clouds:        [dynamic]Entity,
+	clouds_screen: rl.RenderTexture2D,
 }
 
 // cloud_cluster_init :: proc() {
@@ -29,12 +29,12 @@ Cloud_Cluster :: struct {
 
 // }
 
-worm_update :: proc(g: ^Game, dt: f32) {
+cloud_update :: proc(g: ^Game, dt: f32) {
 
 	speed := 100 * dt
 	dir: rl.Vector2
 
-	for &w, index in g.worms {
+	for &w, index in g.cloud_particle {
 
 		if w.pos.x < 0 {
 
@@ -63,21 +63,9 @@ worm_update :: proc(g: ^Game, dt: f32) {
 	}
 }
 
-worm_render_to_texture :: proc(g: ^Game) {
-	rl.BeginTextureMode(g.worm_screen)
-
-	rl.DrawRectangle(
-		0,
-		0,
-		g.worm_screen.texture.width,
-		g.worm_screen.texture.height,
-		rl.Color{128, 64, 128, 2},
-	)
-
-	render_score_particles(g)
-
-
-	for w in g.worms {
+render_cloud_particle :: proc(g: ^Game) {
+	
+	for w in g.cloud_particle {
 		rl.DrawPoly(
 			w.pos,
 			8,
@@ -85,39 +73,13 @@ worm_render_to_texture :: proc(g: ^Game) {
 			cast(f32)(rl.GetRandomValue(0, 360)),
 			rl.Color{186, 196, 220, 255},
 		)
-
 	}
 
-	color := g.player.color
-	rl.DrawCircleGradient(
-		cast(i32)g.player.pos.x,
-		cast(i32)g.player.pos.y,
-		32,
-		rl.Color{color.b, color.g, color.r, 255},
-		rl.Color{255, 255, 255, 0},
-	)
-	// rl.DrawCircleGradient(
-	// 	cast(i32)g.player.pos.x,
-	// 	cast(i32)g.player.pos.y,
-	// 	64,
-	// 	rl.Color{color.b,color.g,color.r, 0},
-	// 	rl.Color{color.b,color.g,color.r, 64},
-	// )
-	// rl.DrawCircleGradient(
-	// 	cast(i32)g.player.pos.x,
-	// 	cast(i32)g.player.pos.y,
-	// 	128,
-	// 	rl.Color{16, 186, 220, 16},
-	// 	rl.Color{16, 16, 16, 0},
-	// )
-
-	rl.EndTextureMode()
 }
 worm_render :: proc(g: ^Game) {
 
-
 	rl.DrawTextureRec(
-		g.worm_screen.texture,
+		g.particle_screen.texture,
 		{0, 0, cast(f32)g.render_width, cast(f32)-g.render_height},
 		{0, 0},
 		rl.WHITE,

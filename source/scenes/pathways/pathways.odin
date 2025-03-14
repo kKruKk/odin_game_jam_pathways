@@ -30,9 +30,9 @@ Game :: struct {
 	should_close:       bool,
 	is_fps_draw:        bool,
 	player:             Player,
-	worms:              [dynamic]Entity,
-	worm_screen:        rl.RenderTexture2D,
-	score_particles:    [dynamic]Score_Particle,
+	cloud_particle:     [dynamic]Entity,
+	score_particles:    [dynamic]Entity,
+	particle_screen:    rl.RenderTexture2D,
 	path:               ^Path,
 	target_main:        rl.RenderTexture2D,
 	window_width:       i32,
@@ -61,9 +61,12 @@ Player :: struct {
 	target_pos_x: [dynamic]f32,
 }
 
+
 Entity :: struct {
 	pos:   rl.Vector2,
+	dir:   rl.Vector2,
 	color: rl.Color,
+	speed: f32,
 }
 
 
@@ -117,10 +120,10 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 				255,
 			}
 
-			append(&game.worms, e)
+			append(&game.cloud_particle, e)
 		}
 
-		game.worm_screen = rl.LoadRenderTexture(game.render_width, game.render_height)
+		game.particle_screen = rl.LoadRenderTexture(game.render_width, game.render_height)
 
 	}
 
@@ -135,7 +138,7 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 
 	game.music = rl.LoadMusicStream("assets/odin_game_jam_music.mp3")
 	game.music_texture = rl.LoadTexture("assets/music_note.png")
-	
+
 
 	if false {
 		scene := entry_scene.create()
@@ -162,11 +165,11 @@ scene_close :: proc(scene: ^cl.Scene) {
 		rl.UnloadRenderTexture(t)
 	}
 	delete(game.player.target)
-	delete(game.worms)
+	delete(game.cloud_particle)
 
 	delete(game.score_particles)
 
-	rl.UnloadRenderTexture(game.worm_screen)
+	rl.UnloadRenderTexture(game.particle_screen)
 	rl.UnloadRenderTexture(game.target_main)
 	rl.UnloadMusicStream(game.music)
 	rl.UnloadTexture(game.music_texture)
@@ -180,8 +183,7 @@ scene_on_enter :: proc(scene: ^cl.Scene) {
 	game.fade_in_alpha = 255
 	game.fade_in_time = 5
 	game.fade_in_time_acc = 0
-	
-	
+
 
 	path_update(game.path, game.render_width, game.render_height, cast(f32)game.loop.update_step)
 }
@@ -257,7 +259,7 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	game.player.pos = game.player.pos + (game.player.dir * speed * dt)
 
 
-	worm_update(game, dt)
+	cloud_update(game, dt)
 
 	game.player.color = rl.Color{16, 16, 16, 255}
 	#reverse for o in game.path.segments {
@@ -313,7 +315,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 
 
 	draw_player_target(game)
-	worm_render_to_texture(game)
+	particle_render_to_texture(game)
 
 	rl.BeginTextureMode(game.target_main)
 	rl.ClearBackground(rl.Color{220, 186, 200, 255})
@@ -398,8 +400,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 scene_each_second :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
-	
-	
+
 	fmt.printfln(
 		"update  %0.3f ms\nrender  %0.3f ms\nloop    %0.3f ms\n",
 		game.loop.stat_update_average_time,
