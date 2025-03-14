@@ -66,11 +66,11 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	screen_width := rl.GetScreenWidth()
 	screen_height := rl.GetScreenHeight()
 
-	for it in 0 ..< 1000 {
+	for _ in 0 ..< 1000 {
 		append(
 			&game.entities,
 			Entity {
-				cast(f32)rl.GetRandomValue(0, rl.GetScreenWidth()),
+				cast(f32)rl.GetRandomValue(0, screen_width),
 				cast(f32)(rl.GetScreenHeight() + rl.GetRandomValue(32, screen_height * 2)),
 				rl.Color {
 					cast(u8)rl.GetRandomValue(128, 255),
@@ -114,10 +114,11 @@ scene_input :: proc(scene: ^cl.Scene) {
 		game.is_fps_draw = !game.is_fps_draw
 	}
 
-	if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) && rl.CheckCollisionPointRec(rl.GetMousePosition(),{cast(f32)rl.GetScreenWidth()-64,32,16,16})
-	{
-		game.is_music_off = !game.is_music_off
-	}
+	if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) &&
+	   rl.CheckCollisionPointRec(
+		   rl.GetMousePosition(),
+		   {cast(f32)rl.GetScreenWidth() - 64, 32, 16, 16},
+	   ) {game.is_music_off = !game.is_music_off}
 
 }
 
@@ -135,12 +136,12 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	}
 
 	rl.UpdateMusicStream(game.music)
-	
-	
+
+
 	if game.is_music_off {
-		rl.SetMusicVolume(game.music,0)
+		rl.SetMusicVolume(game.music, 0)
 	} else {
-		rl.SetMusicVolume(game.music,1.0)
+		rl.SetMusicVolume(game.music, 1.0)
 	}
 
 	if game.should_close {
@@ -251,7 +252,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 		rl.DrawText("PLAY", 380, 290, 20, rl.PINK)
 	}
 
-	music_color := rl.PINK 
+	music_color := rl.PINK
 	if game.is_music_off {
 		music_color = rl.GRAY
 	}

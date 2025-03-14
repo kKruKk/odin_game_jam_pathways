@@ -7,34 +7,31 @@ Cloud_Cluster :: struct {
 	clouds_screen: rl.RenderTexture2D,
 }
 
-// cloud_cluster_init :: proc() {
+ init_cloud :: proc(game : ^Game, ammount : i32) {
+	e: Entity
+		for _ in 0 ..< ammount {
+			e.pos = rl.Vector2 {
+				cast(f32)rl.GetRandomValue(game.render_width, game.render_width * 3),
+				cast(f32)rl.GetRandomValue(0, game.render_height),
+			}
+			e.color = rl.Color {
+				cast(u8)rl.GetRandomValue(128, 255),
+				cast(u8)rl.GetRandomValue(128, 255),
+				cast(u8)rl.GetRandomValue(128, 255),
+				255,
+			}
 
-// 	e: Entity
-// 	for it in 0 ..< 500 {
-// 		e.pos = rl.Vector2 {
-// 			cast(f32)rl.GetRandomValue(game.render_width, game.render_width * 3),
-// 			cast(f32)rl.GetRandomValue(0, game.render_height),
-// 		}
-// 		e.color = rl.Color {
-// 			cast(u8)rl.GetRandomValue(128, 255),
-// 			cast(u8)rl.GetRandomValue(128, 255),
-// 			cast(u8)rl.GetRandomValue(128, 255),
-// 			255,
-// 		}
-
-// 		append(&game.worms, e)
-// 	}
-
-// 	game.worm_screen = rl.LoadRenderTexture(game.render_width, game.render_height)
-
-// }
+			append(&game.cloud_particle, e)
+		}
+		game.particle_screen = rl.LoadRenderTexture(game.render_width, game.render_height)
+}
 
 cloud_update :: proc(g: ^Game, dt: f32) {
 
 	speed := 100 * dt
 	dir: rl.Vector2
 
-	for &w, index in g.cloud_particle {
+	for &w in g.cloud_particle {
 
 		if w.pos.x < 0 {
 

@@ -74,7 +74,6 @@ Entity :: struct {
 scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	game := cast(^Game)scene
 	game.loop = loop
-	game.is_fps_draw = true
 
 	game.window_width = rl.GetScreenWidth()
 	game.window_height = rl.GetScreenHeight()
@@ -103,38 +102,14 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	append(&game.player.target_pos_x, cast(f32)game.render_width / 2)
 	append(&game.player.target_pos_x, cast(f32)game.render_width)
 
-
-	// init worms 
-	{
-
-		e: Entity
-		for it in 0 ..< 500 {
-			e.pos = rl.Vector2 {
-				cast(f32)rl.GetRandomValue(game.render_width, game.render_width * 3),
-				cast(f32)rl.GetRandomValue(0, game.render_height),
-			}
-			e.color = rl.Color {
-				cast(u8)rl.GetRandomValue(128, 255),
-				cast(u8)rl.GetRandomValue(128, 255),
-				cast(u8)rl.GetRandomValue(128, 255),
-				255,
-			}
-
-			append(&game.cloud_particle, e)
-		}
-
-		game.particle_screen = rl.LoadRenderTexture(game.render_width, game.render_height)
-
-	}
-
-
+	
 	game.target_main = rl.LoadRenderTexture(game.render_width, game.render_height)
-
+	
 	game.score_text_mid_pos = {cast(f32)game.render_width / 2, 10}
-
-
-	// path 
+	
+	
 	game.path = new_path(cast(f32)game.render_width, cast(f32)game.render_height, 20)
+	init_cloud(game,500)
 
 	game.music = rl.LoadMusicStream("assets/odin_game_jam_music.mp3")
 	game.music_texture = rl.LoadTexture("assets/music_note.png")
@@ -193,6 +168,7 @@ scene_on_enter :: proc(scene: ^cl.Scene) {
 scene_input :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
+	if game.is_fade_in { return }
 
 	if rl.IsKeyPressed(.F1) {
 		game.is_fps_draw = !game.is_fps_draw
@@ -254,7 +230,7 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 		rl.SetMusicVolume(game.music, 1.0)
 	}
 
-	speed: f32 = 100
+	speed: f32 = 50
 	game.player.dir = rl.Vector2Normalize(game.player.dir)
 	game.player.pos = game.player.pos + (game.player.dir * speed * dt)
 
@@ -372,7 +348,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 		music_color = rl.GRAY
 	}
 
-	rl.DrawTexture(game.music_texture, cast(i32)rl.GetScreenWidth() - 64, 32, music_color)
+	rl.DrawTexture(game.music_texture, rl.GetScreenWidth() - 64, 32, music_color)
 
 	if game.is_fade_in {
 

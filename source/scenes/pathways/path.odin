@@ -22,7 +22,7 @@ new_path :: proc(screen_width, screen_height: f32, size: i32) -> ^Path {
 	result.spawn_pos = {screen_width, screen_height / 2}
 	segment: Path_Segment
 
-	for it in 0 ..< size {
+	for _ in 0 ..< size {
 
 		path_generate_segment_size_and_color(&segment, result.spawn_pos)
 
@@ -59,15 +59,19 @@ dt_acc: f32
 
 path_update :: proc(path: ^Path, screen_width, screen_height: i32, dt: f32) {
 
-	dt_acc += dt 
+	dt_acc += dt
 
 	if dt_acc >= 5 {
 		dt_acc -= 5
 		path.spawn_pos.y = cast(f32)rl.GetRandomValue(-screen_height, screen_height * 2)
 	}
 
-	if path.spawn_pos.y <
-	   0 {path.spawn_pos.y = 0} else if path.spawn_pos.y > cast(f32)screen_height {path.spawn_pos.y = cast(f32)screen_height}
+	if path.spawn_pos.y < cast(f32)screen_height / 7 {
+		path.spawn_pos.y = cast(f32)screen_height / 7
+	} else if path.spawn_pos.y >
+	   cast(f32)screen_height / 7 * 6 {path.spawn_pos.y = cast(f32)screen_height / 7 * 6}
+
+	mid_y: f32
 
 	for &s, index in path.segments {
 		s.rec.x -= 50 * dt
@@ -76,26 +80,22 @@ path_update :: proc(path: ^Path, screen_width, screen_height: i32, dt: f32) {
 
 			path_generate_segment_size_and_color(&s, path.spawn_pos)
 
-			if path.segments[path.last_rec_index].rec.y +
-				   path.segments[path.last_rec_index].rec.height / 2 >
-			   path.spawn_pos.y {
-				s.rec.y =
-				cast(f32)rl.GetRandomValue(
-					cast(i32)(path.segments[path.last_rec_index].rec.y -
-						path.segments[path.last_rec_index].rec.height / 2),
-					cast(i32)(path.segments[path.last_rec_index].rec.y +
-						path.segments[path.last_rec_index].rec.height / 8),
-				)
+			mid_y =
+				path.segments[path.last_rec_index].rec.y +
+				path.segments[path.last_rec_index].rec.height / 2
 
-			} else {
+
+			if mid_y > path.spawn_pos.y {
 				s.rec.y =
-				cast(f32)rl.GetRandomValue(
-					cast(i32)(path.segments[path.last_rec_index].rec.y -
-						path.segments[path.last_rec_index].rec.height / 8),
-					cast(i32)(path.segments[path.last_rec_index].rec.y +
-						path.segments[path.last_rec_index].rec.height / 2),
-				)
+					mid_y -
+					cast(f32)rl.GetRandomValue(
+							cast(i32)(s.rec.height / 8 * 7),
+							cast(i32)(s.rec.height),
+						)
+			} else {
+				s.rec.y = mid_y + cast(f32)rl.GetRandomValue(cast(i32)(-s.rec.height / 8), 0)
 			}
+
 
 			s.rec.x =
 				path.segments[path.last_rec_index].rec.x +
