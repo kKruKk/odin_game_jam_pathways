@@ -9,7 +9,7 @@ Score_Particle :: struct {
 	speed: f32,
 }
 
-
+@(private = "file")
 dt_acc: f32
 
 update_score :: proc(game: ^Game, dt: f32) {
@@ -55,7 +55,7 @@ update_score :: proc(game: ^Game, dt: f32) {
 
 		if p.pos.x < 0 {
 			unordered_remove(&game.score_particles, index)
-			when ODIN_OS == .JS { 
+			when ODIN_OS == .JS {
 				game.score += 2
 			} else {
 				game.score += 1
@@ -76,7 +76,7 @@ update_score :: proc(game: ^Game, dt: f32) {
 
 		particle: Score_Particle
 
-		max_spawn : i32 
+		max_spawn: i32
 
 		when ODIN_OS == .JS {
 			max_spawn = game.score_increase / 2

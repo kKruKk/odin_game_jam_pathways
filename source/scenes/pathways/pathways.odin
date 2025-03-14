@@ -33,8 +33,7 @@ Game :: struct {
 	worms:              [dynamic]Entity,
 	worm_screen:        rl.RenderTexture2D,
 	score_particles:    [dynamic]Score_Particle,
-	obstacles:          [dynamic]Entity_PATH_SEGMENT,
-	obstacle_last:      rl.Rectangle,
+	path:               ^Path,
 	target_main:        rl.RenderTexture2D,
 	window_width:       i32,
 	window_height:      i32,
@@ -102,7 +101,7 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 	append(&game.player.target_pos_x, cast(f32)game.render_width)
 
 
-	// init paths and paths_screens 
+	// init worms 
 	{
 
 		e: Entity
@@ -125,50 +124,18 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 
 	}
 
-	{
-		// obstacles
-		e: Entity_PATH_SEGMENT
-		for it in 0 ..< 10 {
-			if it == 0 {
-
-				e.rec.width = cast(f32)rl.GetRandomValue(16, 128)
-				e.rec.height = cast(f32)rl.GetRandomValue(16, 128)
-				e.rec.x = cast(f32)rl.GetRandomValue(game.render_width, game.render_width * 2)
-				e.rec.y = cast(f32)rl.GetRandomValue(0 - cast(i32)e.rec.height, game.render_height)
-				e.color = rl.Color {
-					cast(u8)rl.GetRandomValue(32, 186),
-					cast(u8)rl.GetRandomValue(32, 186),
-					cast(u8)rl.GetRandomValue(32, 186),
-					255,
-				}
-
-			} else {
-
-
-				obstacle_generate_position(&e, game)
-
-				e.color = rl.Color {
-					cast(u8)rl.GetRandomValue(32, 186),
-					cast(u8)rl.GetRandomValue(32, 186),
-					cast(u8)rl.GetRandomValue(32, 186),
-					255,
-				}
-			}
-			game.obstacle_last = e.rec
-			append(&game.obstacles, e)
-		}
-
-
-	}
 
 	game.target_main = rl.LoadRenderTexture(game.render_width, game.render_height)
 
 	game.score_text_mid_pos = {cast(f32)game.render_width / 2, 10}
 
 
+	// path 
+	game.path = new_path(cast(f32)game.render_width, cast(f32)game.render_height, 20)
+
 	game.music = rl.LoadMusicStream("assets/odin_game_jam_music.mp3")
 	game.music_texture = rl.LoadTexture("assets/music_note.png")
-
+	
 
 	if false {
 		scene := entry_scene.create()
@@ -189,13 +156,14 @@ scene_init :: proc(scene: ^cl.Scene, loop: ^cl.Loop_Data) -> bool {
 scene_close :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
+	destroy_path(game.path)
+
 	for t in game.player.target {
 		rl.UnloadRenderTexture(t)
 	}
 	delete(game.player.target)
 	delete(game.worms)
 
-	delete(game.obstacles)
 	delete(game.score_particles)
 
 	rl.UnloadRenderTexture(game.worm_screen)
@@ -212,6 +180,10 @@ scene_on_enter :: proc(scene: ^cl.Scene) {
 	game.fade_in_alpha = 255
 	game.fade_in_time = 5
 	game.fade_in_time_acc = 0
+	
+	
+
+	path_update(game.path, game.render_width, game.render_height, cast(f32)game.loop.update_step)
 }
 
 
@@ -272,6 +244,7 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 
 	rl.UpdateMusicStream(game.music)
 
+	path_update(game.path, game.render_width, game.render_height, dt)
 
 	if game.is_music_off {
 		rl.SetMusicVolume(game.music, 0)
@@ -285,10 +258,9 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 
 
 	worm_update(game, dt)
-	obstacle_update(game, dt)
 
 	game.player.color = rl.Color{16, 16, 16, 255}
-	#reverse for o in game.obstacles {
+	#reverse for o in game.path.segments {
 		if rl.CheckCollisionPointRec(game.player.pos, o.rec) {
 			game.player.color.r = o.color.r + 64
 			game.player.color.g = o.color.g + 64
@@ -346,8 +318,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 	rl.BeginTextureMode(game.target_main)
 	rl.ClearBackground(rl.Color{220, 186, 200, 255})
 
-
-	obstacle_render(game)
+	path_render_segments(game.path^)
 
 
 	for t, index in game.player.target {
@@ -358,7 +329,8 @@ scene_output :: proc(scene: ^cl.Scene) {
 			rl.WHITE,
 		)
 	}
-	//worm_render(game)
+
+	worm_render(game)
 
 	rl.UpdateMusicStream(game.music)
 
@@ -426,7 +398,8 @@ scene_output :: proc(scene: ^cl.Scene) {
 scene_each_second :: proc(scene: ^cl.Scene) {
 	game := cast(^Game)scene
 
-
+	
+	
 	fmt.printfln(
 		"update  %0.3f ms\nrender  %0.3f ms\nloop    %0.3f ms\n",
 		game.loop.stat_update_average_time,

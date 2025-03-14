@@ -2,10 +2,36 @@ package pathways
 
 import rl "vendor:raylib"
 
+Cloud_Cluster :: struct {
+	clouds:              [dynamic]Entity,
+	clouds_screen:        rl.RenderTexture2D,
+}
+
+// cloud_cluster_init :: proc() {
+
+// 	e: Entity
+// 	for it in 0 ..< 500 {
+// 		e.pos = rl.Vector2 {
+// 			cast(f32)rl.GetRandomValue(game.render_width, game.render_width * 3),
+// 			cast(f32)rl.GetRandomValue(0, game.render_height),
+// 		}
+// 		e.color = rl.Color {
+// 			cast(u8)rl.GetRandomValue(128, 255),
+// 			cast(u8)rl.GetRandomValue(128, 255),
+// 			cast(u8)rl.GetRandomValue(128, 255),
+// 			255,
+// 		}
+
+// 		append(&game.worms, e)
+// 	}
+
+// 	game.worm_screen = rl.LoadRenderTexture(game.render_width, game.render_height)
+
+// }
 
 worm_update :: proc(g: ^Game, dt: f32) {
 
-	speed := 100 * dt 
+	speed := 100 * dt
 	dir: rl.Vector2
 
 	for &w, index in g.worms {
@@ -37,8 +63,8 @@ worm_update :: proc(g: ^Game, dt: f32) {
 	}
 }
 
-worm_render_to_texture :: proc(g: ^Game){
-rl.BeginTextureMode(g.worm_screen)
+worm_render_to_texture :: proc(g: ^Game) {
+	rl.BeginTextureMode(g.worm_screen)
 
 	rl.DrawRectangle(
 		0,
@@ -52,8 +78,14 @@ rl.BeginTextureMode(g.worm_screen)
 
 
 	for w in g.worms {
-		rl.DrawPoly(w.pos, 8, 16, cast(f32)(rl.GetRandomValue(0, 360)), rl.Color{186,196,220,255})
-		
+		rl.DrawPoly(
+			w.pos,
+			8,
+			16,
+			cast(f32)(rl.GetRandomValue(0, 360)),
+			rl.Color{186, 196, 220, 255},
+		)
+
 	}
 
 	color := g.player.color
@@ -61,8 +93,8 @@ rl.BeginTextureMode(g.worm_screen)
 		cast(i32)g.player.pos.x,
 		cast(i32)g.player.pos.y,
 		32,
-		rl.Color{color.b,color.g,color.r,255},
-		rl.Color{255,255, 255, 0},
+		rl.Color{color.b, color.g, color.r, 255},
+		rl.Color{255, 255, 255, 0},
 	)
 	// rl.DrawCircleGradient(
 	// 	cast(i32)g.player.pos.x,
@@ -83,7 +115,6 @@ rl.BeginTextureMode(g.worm_screen)
 }
 worm_render :: proc(g: ^Game) {
 
-	
 
 	rl.DrawTextureRec(
 		g.worm_screen.texture,
