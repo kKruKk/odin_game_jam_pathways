@@ -40,7 +40,6 @@ Game :: struct {
 	entities:            [dynamic]Entity,
 	music:               rl.Music,
 	music_texture:       rl.Texture2D,
-	is_music_off:        bool,
 }
 
 Entity :: struct {
@@ -121,7 +120,7 @@ scene_input :: proc(scene: ^cl.Scene) {
 	   rl.CheckCollisionPointRec(
 		   rl.GetMousePosition(),
 		   {cast(f32)rl.GetScreenWidth() - 64, 32, 16, 16},
-	   ) {game.is_music_off = !game.is_music_off}
+	   ) {sn.g_is_music_off = !sn.g_is_music_off}
 
 }
 
@@ -141,7 +140,7 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 	rl.UpdateMusicStream(game.music)
 
 
-	if game.is_music_off {
+	if sn.g_is_music_off {
 		rl.SetMusicVolume(game.music, 0)
 	} else {
 		rl.SetMusicVolume(game.music, 1.0)
@@ -269,7 +268,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 	
 
 	music_color := rl.PINK
-	if game.is_music_off {
+	if sn.g_is_music_off {
 		music_color = rl.GRAY
 	}
 	rl.DrawTexture(game.music_texture, cast(i32)width - 64, 32, music_color)

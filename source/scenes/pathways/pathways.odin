@@ -4,6 +4,7 @@ import "core:fmt"
 import rl "vendor:raylib"
 
 import cl "../../core_loop"
+import sn "../"
 
 create :: proc() -> ^Game {
 
@@ -42,7 +43,6 @@ Game :: struct {
 	score_text_mid_pos: rl.Vector2,
 	music:              rl.Music,
 	music_texture:      rl.Texture2D,
-	is_music_off:       bool,
 	is_fade_in:         bool,
 	fade_in_alpha:      u8,
 	fade_in_time:       f32,
@@ -178,7 +178,7 @@ scene_input :: proc(scene: ^cl.Scene) {
 	mouse := rl.GetMousePosition()
 	if rl.CheckCollisionPointRec(mouse, {cast(f32)rl.GetScreenWidth() - 64, 32, 16, 16}) {
 		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-			game.is_music_off = !game.is_music_off
+			sn.g_is_music_off = !sn.g_is_music_off
 		}
 	} else if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
 
@@ -210,7 +210,7 @@ scene_update :: proc(scene: ^cl.Scene, dt: f32) -> bool {
 
 	path_update(game.path, game.render_width, game.render_height, dt)
 
-	if game.is_music_off {
+	if sn.g_is_music_off {
 		rl.SetMusicVolume(game.music, 0)
 	} else {
 		rl.SetMusicVolume(game.music, 1.0)
@@ -330,7 +330,7 @@ scene_output :: proc(scene: ^cl.Scene) {
 	)
 
 	music_color := rl.PINK
-	if game.is_music_off {
+	if sn.g_is_music_off {
 		music_color = rl.GRAY
 	}
 
